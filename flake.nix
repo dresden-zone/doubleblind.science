@@ -33,9 +33,6 @@
               rustc = toolchain;
             }).buildPackage;
           };
-
-          test-vm-pkg = self.nixosConfigurations.doubleblind-mctest.config.system.build.vm;
-
         in
         rec {
           checks = packages;

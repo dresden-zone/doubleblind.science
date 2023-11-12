@@ -4,7 +4,7 @@ use axum::http::Method;
 use axum::Server;
 use clap::Parser;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{error, info, Level, debug};
+use tracing::{debug, error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::args::DoubleBlindArgs;
@@ -44,14 +44,12 @@ async fn main() -> anyhow::Result<()> {
         &args.database_host,
         &args.database_name,
         &args.github_client_id,
-        &args.github_client_secret_file
+        &args.github_client_secret_file,
     )
     .await;
 
     debug!("starting migrations ...");
-    sqlx::migrate!("../migrations")
-        .run(&state.database)
-        .await?;
+    sqlx::migrate!("../migrations").run(&state.database).await?;
 
     let router = route().layer(cors).with_state(state);
     let server = Server::bind(&args.listen_addr).serve(router.into_make_service());

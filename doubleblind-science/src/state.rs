@@ -1,11 +1,14 @@
-use std::collections::HashMap;
-use std::path::Path;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Error, PgPool, Pool, Postgres};
+use std::collections::HashMap;
+use std::path::Path;
 
-use oauth2::reqwest::async_http_client;
-use oauth2::{AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl, AccessToken};
 use oauth2::basic::BasicClient;
+use oauth2::reqwest::async_http_client;
+use oauth2::{
+    AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
+    TokenResponse, TokenUrl,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -13,7 +16,7 @@ pub(crate) struct DoubleBlindState {
     pub database: Pool<Postgres>,
     pub oauth_github_client: BasicClient,
     pub csrf_state: HashMap<Uuid, CsrfToken>,
-    pub github_tokens: HashMap<Uuid, AccessToken>
+    pub github_tokens: HashMap<Uuid, AccessToken>,
 }
 
 impl DoubleBlindState {
@@ -23,11 +26,13 @@ impl DoubleBlindState {
         host: &str,
         database: &str,
         github_client_id: &str,
-        github_client_secret_path: &Path
+        github_client_secret_path: &Path,
     ) -> DoubleBlindState {
         // reading secrets from files
-        let database_password = std::fs::read_to_string(password_file).expect("cannot read password file");
-        let github_client_secret= std::fs::read_to_string(github_client_secret_path).expect("cannot read github secret file");
+        let database_password =
+            std::fs::read_to_string(password_file).expect("cannot read password file");
+        let github_client_secret = std::fs::read_to_string(github_client_secret_path)
+            .expect("cannot read github secret file");
 
         // opening connection to postgres
         let connection = PgPoolOptions::new()
@@ -41,8 +46,7 @@ impl DoubleBlindState {
 
         // adding parsing information required to talk to github api
         let parsed_github_client_id = ClientId::new(github_client_id.to_string());
-        let parsed_github_secret= ClientSecret::new(github_client_secret);
-
+        let parsed_github_secret = ClientSecret::new(github_client_secret);
 
         // urls how to talk to github oauth
         let auth_url = AuthUrl::new("https://github.com/login/oauth/authorize".to_string())
@@ -56,16 +60,17 @@ impl DoubleBlindState {
             Some(parsed_github_secret),
             auth_url,
             Some(token_url),
-        ).set_redirect_uri(
-            RedirectUrl::new("https://api.doubleblind.science/auth/callback/github".to_string()).expect("Invalid redirect URL"),
+        )
+        .set_redirect_uri(
+            RedirectUrl::new("https://api.doubleblind.science/auth/callback/github".to_string())
+                .expect("Invalid redirect URL"),
         );
-
 
         DoubleBlindState {
             database: connection,
             oauth_github_client: client,
             csrf_state: HashMap::new(),
-            github_tokens: HashMap::new()
+            github_tokens: HashMap::new(),
         }
     }
 }
