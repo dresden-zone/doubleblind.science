@@ -48,16 +48,16 @@ pub(crate) async fn auth_login_github(
 
     let session_id = Uuid::new_v4();
     
-    state.csrf_state[session_id] = csrf_state;
+    state.csrf_state.insert(session_id, csrf_state);
 
-    let _ = jar.add(Cookie::new("session_id", session_id));
+    let _ = jar.add(Cookie::new("session_id", session_id.to_string()));
 
     Json(ReturnUrl { url : authorize_url })
 }
 
 
 pub(crate) async fn auth_login_github_callback (
-    State(state): State<DoubleBlindState>,
+    State(mut state): State<DoubleBlindState>,
     Query(query): Query<AuthCall>,
     jar: CookieJar
 ) -> StatusCode {
@@ -73,7 +73,20 @@ pub(crate) async fn auth_login_github_callback (
         return if let Some(token) = state.csrf_state.get(&session_id) {
             let code = AuthorizationCode::new(query.code);
             if token.secret() == code.secret() {
-                StatusCode::OK
+                match state.oauth_github_client
+                    .exchange_code(code)
+                    .request_async(async_http_client)
+                    .await {
+                    Ok(token) => {
+                        println!("token for scopes {:?}", token.scopes());
+                        state.github_tokens.insert(session_id, token.access_token().clone());
+                        state.csrf_state.remove(&session_id);
+                        StatusCode::OK
+                    },
+                    Err(e) => {
+                        StatusCode::BAD_REQUEST
+                    }
+                }
             } else {
                 StatusCode::UNAUTHORIZED
             }
@@ -81,6 +94,6 @@ pub(crate) async fn auth_login_github_callback (
             StatusCode::NOT_ACCEPTABLE
         }
     } else {
-        StatusCode::UNAUTHORIZED
+        StatusCode::BAD_REQUEST
     }
 }

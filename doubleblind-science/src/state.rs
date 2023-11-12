@@ -4,10 +4,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::{Error, PgPool, Pool, Postgres};
 
 use oauth2::reqwest::async_http_client;
-use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
-    TokenResponse, TokenUrl,
-};
+use oauth2::{AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl, AccessToken};
 use oauth2::basic::BasicClient;
 use uuid::Uuid;
 
@@ -16,6 +13,7 @@ pub(crate) struct DoubleBlindState {
     pub database: Pool<Postgres>,
     pub oauth_github_client: BasicClient,
     pub csrf_state: HashMap<Uuid, CsrfToken>,
+    pub github_tokens: HashMap<Uuid, AccessToken>
 }
 
 impl DoubleBlindState {
@@ -66,7 +64,8 @@ impl DoubleBlindState {
         DoubleBlindState {
             database: connection,
             oauth_github_client: client,
-            csrf_state: vec![]
+            csrf_state: HashMap::new(),
+            github_tokens: HashMap::new()
         }
     }
 }
