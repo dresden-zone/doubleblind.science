@@ -6,8 +6,10 @@ use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
+use axum_extra::extract::cookie::{CookieJar, Cookie};
 use std::env;
 use std::os::linux::raw::stat;
+use std::str::FromStr;
 use axum::extract::{State, Query};
 use axum::http::StatusCode;
 use axum::Json;
@@ -15,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 use url::Url;
+use uuid::Uuid;
 use crate::state::DoubleBlindState;
 
 
@@ -32,6 +35,7 @@ pub struct ReturnUrl {
 
 pub(crate) async fn auth_login_github(
     State(mut state): State<DoubleBlindState>,
+    jar: CookieJar
 ) -> Json<ReturnUrl> {
 
     let (authorize_url, csrf_state) = state.oauth_github_client
@@ -42,7 +46,11 @@ pub(crate) async fn auth_login_github(
         .add_scope(Scope::new("admin:repo_hook".to_string()))
         .url();
 
-    state.csrf_state.push(csrf_state);
+    let session_id = Uuid::new_v4();
+    
+    state.csrf_state[session_id] = csrf_state;
+
+    let _ = jar.add(Cookie::new("session_id", session_id));
 
     Json(ReturnUrl { url : authorize_url })
 }
@@ -50,11 +58,29 @@ pub(crate) async fn auth_login_github(
 
 pub(crate) async fn auth_login_github_callback (
     State(state): State<DoubleBlindState>,
-    Query(query): Query<AuthCall>
+    Query(query): Query<AuthCall>,
+    jar: CookieJar
 ) -> StatusCode {
+    if let Some(session_cookie) = jar.get("session_id") {
 
-    let code = AuthorizationCode::new(query.code);
-    let csrf_token = CsrfToken::new(query.state);
+        let session_id = match Uuid::from_str(session_cookie.value()) {
+            Ok(value) => value,
+            Err(_) => {
+                return StatusCode::BAD_REQUEST;
+            }
+        };
 
-    StatusCode::OK
+        return if let Some(token) = state.csrf_state.get(&session_id) {
+            let code = AuthorizationCode::new(query.code);
+            if token.secret() == code.secret() {
+                StatusCode::OK
+            } else {
+                StatusCode::UNAUTHORIZED
+            }
+        } else {
+            StatusCode::NOT_ACCEPTABLE
+        }
+    } else {
+        StatusCode::UNAUTHORIZED
+    }
 }

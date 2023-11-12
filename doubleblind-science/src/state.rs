@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Error, PgPool, Pool, Postgres};
@@ -8,12 +9,13 @@ use oauth2::{
     TokenResponse, TokenUrl,
 };
 use oauth2::basic::BasicClient;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
     pub database: Pool<Postgres>,
     pub oauth_github_client: BasicClient,
-    pub csrf_state: Vec<CsrfToken>
+    pub csrf_state: HashMap<Uuid, CsrfToken>,
 }
 
 impl DoubleBlindState {
