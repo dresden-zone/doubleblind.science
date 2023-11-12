@@ -1,95 +1,88 @@
 {
-  inputs = { 
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05"; 
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+
     naersk = {
       url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    utils = {
+      url = "github:numtide/flake-utils";
+    };
+
     fenix = {
       url = "github:nix-community/fenix";
     };
   };
 
-  outputs = { self, nixpkgs, naersk, fenix }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-      makeTest = pkgs.callPackage "${nixpkgs}/nixos/tests/make-test-python.nix";
-
-      toolchain = with fenix.packages.${system}; combine [
-        latest.cargo
-        latest.rustc
-      ];
-
-      migration-package = pkgs.callPackage ./derivation.nix {
-        buildPackage = (naersk.lib.${system}.override {
-          cargo = toolchain;
-          rustc = toolchain;
-        }).buildPackage;
-      };
-    in
-    {
-      checks.${system}.test-sea-orm-cli-migration =
+  outputs = inputs@{ self, nixpkgs, naersk, utils, fenix, ... }:
+    utils.lib.eachDefaultSystem
+      (system:
         let
-          username = "postgres";
-          password = "password";
-          database = "database";
-          migrations_dir = ./migration;
-        in
-        makeTest
-          {
-            name = "test-sea-orm-cli-migration";
-            nodes = {
-              server = { lib, config, pkgs, ... }: {
-                services.postgresql = {
-                  enable = true;
-                  ensureDatabases = [ database ];
-                  ensureUsers = [{
-                    name = username;
-                    ensurePermissions = {
-                      "DATABASE ${database}" = "ALL PRIVILEGES";
-                    };
-                  }];
-                  initialScript = pkgs.writeScript "initScript" ''
-                    ALTER USER postgres WITH PASSWORD '${password}';
-                  '';
-                };
+          pkgs = nixpkgs.legacyPackages.${system};
 
-                systemd.services.postgresql.postStart = lib.mkAfter ''
-                  ${migration-package}/bin/migration refresh --database-url postgresql://${username}:${password}@localhost/${database}
-                '';
-              };
-            };
-            testScript = ''
-              start_all()
-              server.wait_for_unit("postgresql.service")
-              server.execute("${pkgs.sea-orm-cli}/bin/sea-orm-cli generate entity --database-url postgresql://${username}:${password}@localhost/${database} --date-time-crate time --with-serde both --output-dir /tmp/out") 
-              server.copy_from_vm("/tmp/out", "")
-            '';
-          }
-          {
-            inherit pkgs;
-            inherit (pkgs) system;
+          toolchain = with fenix.packages.${system}; combine [
+            latest.cargo
+            latest.rustc
+          ];
+
+          package = pkgs.callPackage ./derivation.nix {
+            buildPackage = (naersk.lib.${system}.override {
+              cargo = toolchain;
+              rustc = toolchain;
+            }).buildPackage;
           };
 
-      packages.${system} = {
-        update-schema = pkgs.writeScriptBin "update-schema" ''
-          nix build ${self}#checks.${system}.test-sea-orm-cli-migration
-          BUILD_DIR=$(nix build ${self}#checks.${system}.test-sea-orm-cli-migration --no-link --print-out-paths)
-          rm -rf entity/doubleblind.science/models/*
-          cp -r $BUILD_DIR/out/* ./entity/doubleblind.science/models/
-          #mv ./entity/doubleblind.science/mod.rs ./entity/doubleblind.science/lib.rs
-          chmod -R 644 ./entity/doubleblind.science/models/*
-          ${pkgs.cargo}/bin/cargo fmt
-        '';
+          test-vm-pkg = self.nixosConfigurations.doubleblind-mctest.config.system.build.vm;
 
-        run-migration-based = pkgs.writeScriptBin "run-migration" ''
-          ${pkgs.sea-orm-cli}/bin/sea-orm-cli migration run --migration-dir ${self}/migrations-based
-        '';
+        in
+        rec {
+          checks = packages;
+          packages = {
+            doubleblind = package;
+            default = package;
+          };
+
+          devShells.default = pkgs.mkShell {
+            nativeBuildInputs = (with packages.default; nativeBuildInputs ++ buildInputs) ++ [
+              # python for running test scripts
+              (pkgs.python3.withPackages (p: with p; [
+                requests
+              ]))
+            ];
+          };
+        }
+      ) // {
+      overlays.default = final: prev: {
+        inherit (self.packages.${prev.system})
+          doubleblind;
       };
 
-      devShells."x86_64-linux".default = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [ pkg-config postgresql_14 openssl sea-orm-cli ];
+      nixosModules = rec {
+        doubleblind = import ./nixos-module/doubleblind.nix;
+        default = doubleblind;
       };
+
+      hydraJobs =
+        let
+          hydraSystems = [
+            "x86_64-linux"
+            "aarch64-linux"
+          ];
+        in
+        builtins.foldl'
+          (hydraJobs: system:
+            builtins.foldl'
+              (hydraJobs: pkgName:
+                nixpkgs.lib.recursiveUpdate hydraJobs {
+                  ${pkgName}.${system} = self.packages.${system}.${pkgName};
+                }
+              )
+              hydraJobs
+              (builtins.attrNames self.packages.${system})
+          )
+          { }
+          hydraSystems;
     };
 }
