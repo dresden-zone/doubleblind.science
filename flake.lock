@@ -71,11 +71,35 @@
         "type": "github"
       }
     },
+    "pnpm2nix": {
+      "inputs": {
+        "flake-utils": [
+          "utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1699244314,
+        "narHash": "sha256-5DV/hpUIBOEc0fc3i1GH4IaYw8aP0qBxyE6jHEF3W1M=",
+        "owner": "nzbr",
+        "repo": "pnpm2nix-nzbr",
+        "rev": "b304aef523b61a937979a5adfe48886fdd69f307",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nzbr",
+        "repo": "pnpm2nix-nzbr",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "fenix": "fenix",
         "naersk": "naersk",
         "nixpkgs": "nixpkgs_2",
+        "pnpm2nix": "pnpm2nix",
         "utils": "utils"
       }
     },

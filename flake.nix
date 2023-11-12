@@ -14,9 +14,15 @@
     fenix = {
       url = "github:nix-community/fenix";
     };
+
+    pnpm2nix = {
+      url = "github:nzbr/pnpm2nix-nzbr";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
+    };
   };
 
-  outputs = inputs@{ self, nixpkgs, naersk, utils, fenix, ... }:
+  outputs = inputs@{ self, nixpkgs, naersk, utils, fenix, pnpm2nix, ... }:
     utils.lib.eachDefaultSystem
       (system:
         let
@@ -27,18 +33,25 @@
             latest.rustc
           ];
 
-          package = pkgs.callPackage ./derivation.nix {
+          backend = pkgs.callPackage ./backend.nix {
             buildPackage = (naersk.lib.${system}.override {
               cargo = toolchain;
               rustc = toolchain;
             }).buildPackage;
           };
+
+          frontend = pkgs.callPackage ./frontend.nix {
+            mkPnpmPackage = pnpm2nix.packages."${system}".mkPnpmPackage;
+            domain = "science.tanneberger.me";
+          };
         in
         rec {
           checks = packages;
           packages = {
-            doubleblind = package;
-            default = package;
+            doubleblind-backend = backend;
+            doubleblind-frontend = frontend;
+
+            default = backend;
           };
 
           devShells.default = pkgs.mkShell {
