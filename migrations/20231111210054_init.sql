@@ -6,14 +6,16 @@ CREATE TABLE oauth (
 
 CREATE TABLE project (
   id UUID PRIMARY KEY, 
-  owner UUID REFERENCES TABLE oauth(id),
+  owner UUID NOT NULL REFERENCES oauth(id),
   domain TEXT NOT NULL, 
   commit VARCHAR(40) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  last_update TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE github_source (
   id UUID PRIMARY KEY,
-  project_id UUID REFERENCES TABLE project(id) NOT NULL,
-  github_id BITINT NOT NULL
+  project_id UUID NOT NULL REFERENCES project(id),
+  refresh_token TEXT NOT NULL
 );
 
