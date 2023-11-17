@@ -95,7 +95,7 @@ in
           wantedBy = [ "multi-user.target" "network.target" ];
 
           script = ''
-            exec ${pkgs.doubleblind}/bin/doubeblind-science --listend-addr ${cfg.host}:${toString cfg.port}&
+            exec ${pkgs.doubleblind-backend}/bin/doubeblind-science&
           '';
 
           environment = {

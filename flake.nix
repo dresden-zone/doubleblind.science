@@ -66,7 +66,7 @@
       ) // {
       overlays.default = final: prev: {
         inherit (self.packages.${prev.system})
-          doubleblind;
+          doubleblind-backend doubleblind-frontend;
       };
 
       nixosModules = rec {
