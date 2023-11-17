@@ -62,7 +62,7 @@ impl DoubleBlindState {
             Some(token_url),
         )
         .set_redirect_uri(
-            RedirectUrl::new("https://api.doubleblind.science/auth/callback/github".to_string())
+            RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
                 .expect("Invalid redirect URL"),
         );
 
