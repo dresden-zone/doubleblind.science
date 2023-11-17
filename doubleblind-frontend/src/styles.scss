@@ -1,1 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
+@import "theme";
+@include theme($c-primary:rgba(115, 0, 235, 1), $c-primary-d: rgba(110, 0, 220, 1), $c-primary-l: rgba(140, 0, 255, 1));
+
+

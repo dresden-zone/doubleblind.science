@@ -1,0 +1,28 @@
+<header>
+  <a href="/"><h1 class="title">Doubleblind.Science</h1></a>
+</header>
+<main>
+  <div class="container">
+    <app-card>
+      <table>
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Repo</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let project of (projects | async )">
+          <td>{{project.name}}</td>
+          <td>{{project.repo}}</td>
+          <td>{{project.last_update | date}}</td>
+          <td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>
+        </tr>
+        </tbody>
+      </table>
+    </app-card>
+  </div>
+</main>
+<footer></footer>

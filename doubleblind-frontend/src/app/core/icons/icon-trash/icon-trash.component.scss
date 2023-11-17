@@ -1,0 +1,11 @@
+@import "vars";
+
+:host {
+  display: flex;
+
+  svg {
+    fill: $f-color;
+    width: inherit;
+    height: inherit;
+  }
+}

@@ -6,7 +6,7 @@ use axum::Router;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::routes::auth::auth_login_github;
+use crate::routes::auth::{auth_login_github, auth_login_github_callback};
 use crate::state::DoubleBlindState;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -17,4 +17,5 @@ pub(crate) fn route() -> Router<DoubleBlindState> {
     Router::new()
         //.route("/auth/callback/github", get(simple)
         .route("/auth/login/github", get(auth_login_github))
+        .route("/auth/login/github/callback", get(auth_login_github_callback))
 }

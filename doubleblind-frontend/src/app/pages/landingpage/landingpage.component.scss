@@ -1,0 +1,70 @@
+@import "computer-modern/cmu-serif.css";
+@import "vars";
+
+header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex-grow: 1;
+  padding-left: 5rem;
+  background-image: url("../../../assets/background.svg");
+  background-repeat: no-repeat;
+  background-position: right;
+}
+
+footer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 1rem;
+  gap: 1rem;
+
+  //background: radial-gradient(circle, rgba(255, 126, 0, 1) 0%, rgba(126, 0, 255, 1) 46%, rgba(255, 74, 0, 0) 100%);
+  //background-position: 10% 10%;
+}
+
+.title {
+  font-weight: 1000;
+  font-family: "CMU Serif", serif;
+  font-size: 3rem;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 3rem;
+
+  :not(.hero-bg) {
+    z-index: 100;
+  }
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(255, 126, 0, 1) 0%, rgba(126, 0, 255, 1) 46%, rgba(255, 74, 0, 0) 100%);
+  filter: blur(10rem);
+}
+
+h2 {
+  font-size: 2rem;
+  color: #072449;
+}
+
