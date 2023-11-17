@@ -126,7 +126,11 @@ in
       isNormalUser = false;
       isSystemUser = true;
       group = cfg.group;
-      uid = 1501;
+    };
+
+    users.group."${cfg.group}" = {
+      name = "doubleblind";
+      members = [ cfg.user ];
     };
   };
 }
