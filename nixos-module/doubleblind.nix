@@ -128,7 +128,7 @@ in
       group = cfg.group;
     };
 
-    users.group."${cfg.group}" = {
+    users.groups."${cfg.group}" = {
       name = "doubleblind";
       members = [ cfg.user ];
     };
