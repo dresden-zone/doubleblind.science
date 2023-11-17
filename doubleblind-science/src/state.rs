@@ -30,7 +30,7 @@ impl DoubleBlindState {
     ) -> DoubleBlindState {
         // reading secrets from files
         let database_password =
-            std::fs::read_to_string(password_file).expect(format!("cannot read password file: {}", &password_file));
+            std::fs::read_to_string(password_file).expect(&*format!("cannot read password file: {:?}", &password_file));
         let github_client_secret = std::fs::read_to_string(github_client_secret_path)
             .expect("cannot read github secret file");
 
