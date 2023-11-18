@@ -5,7 +5,7 @@ use crate::state::DoubleBlindState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::Json;
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
@@ -49,6 +49,7 @@ pub(crate) async fn auth_login_github(
 
     let cookie = Cookie::build("seesion_id", session_id.to_string())
         .domain("api.science.tanneberger.me")
+        .same_site(SameSite::Lax)
         //.path(config.base_url.path().to_string())
         .secure(true)
         .http_only(true)
