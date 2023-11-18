@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use axum::response::{IntoResponse, Redirect};
 use time::Duration;
+use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
@@ -89,7 +90,10 @@ pub(crate) async fn auth_login_github_callback(
                         state.csrf_state.remove(&session_id);
                         StatusCode::OK
                     }
-                    Err(e) => StatusCode::BAD_REQUEST,
+                    Err(e) => {
+                        error!("error when trying ot fetch github token {:?}", e);
+                        StatusCode::BAD_REQUEST
+                    },
                 }
             } else {
                 StatusCode::UNAUTHORIZED
