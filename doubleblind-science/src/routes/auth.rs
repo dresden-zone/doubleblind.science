@@ -49,7 +49,7 @@ pub(crate) async fn auth_login_github(
     state.csrf_state.insert(session_id, csrf_state);
     // Build the cookie
 
-    let cookie = Cookie::build("seesion_id", session_id.to_string())
+    let cookie = Cookie::build("session_id", session_id.to_string())
         .domain("api.science.tanneberger.me")
         .same_site(SameSite::Lax)
         .path("/auth")
@@ -66,20 +66,23 @@ pub(crate) async fn auth_login_github_callback(
     Query(query): Query<AuthCall>,
     jar: CookieJar,
 ) -> StatusCode {
+    println!("request ....");
     if let Some(session_cookie) = jar.get("session_id") {
-        debug!("found cookie ...");
+        println!("found cookie ...");
         let session_id = match Uuid::from_str(session_cookie.value()) {
             Ok(value) => value,
             Err(e) => {
-                error!("cannot parse session uuid from cookie {:?}", e);
+                println!("cannot parse session uuid from cookie {:?}", e);
                 return StatusCode::BAD_REQUEST;
             }
         };
 
+        println!("debug {:?}", &state.csrf_state);
+
         return if let Some(token) = state.csrf_state.get(&session_id) {
             let code = AuthorizationCode::new(query.code);
             if token.secret() == code.secret() {
-                debug!("secrets match! ...");
+                println!("secrets match! ...");
                 match state
                     .oauth_github_client
                     .exchange_code(code)
@@ -87,7 +90,7 @@ pub(crate) async fn auth_login_github_callback(
                     .await
                 {
                     Ok(token) => {
-                        debug!("token for scopes {:?}", token.scopes());
+                        println!("token for scopes {:?}", token.scopes());
                         state
                             .github_tokens
                             .insert(session_id, token.access_token().clone());
@@ -95,7 +98,7 @@ pub(crate) async fn auth_login_github_callback(
                         StatusCode::OK
                     }
                     Err(e) => {
-                        error!("error when trying ot fetch github token {:?}", e);
+                        println!("error when trying ot fetch github token {:?}", e);
                         StatusCode::BAD_REQUEST
                     },
                 }
@@ -103,7 +106,7 @@ pub(crate) async fn auth_login_github_callback(
                 StatusCode::UNAUTHORIZED
             }
         } else {
-            StatusCode::NOT_ACCEPTABLE
+            StatusCode::UNAUTHORIZED
         };
     } else {
         StatusCode::BAD_REQUEST
