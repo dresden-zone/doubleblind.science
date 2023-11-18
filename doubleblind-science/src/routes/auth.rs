@@ -14,6 +14,7 @@ use oauth2::{
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use axum::response::{IntoResponse, Redirect};
+use time::Duration;
 use url::Url;
 use uuid::Uuid;
 
@@ -44,10 +45,17 @@ pub(crate) async fn auth_login_github(
     let session_id = Uuid::new_v4();
 
     state.csrf_state.insert(session_id, csrf_state);
+    // Build the cookie
 
-    let result_cookie = jar.add(Cookie::new("session_id", session_id.to_string()));
+    let cookie = Cookie::build("seesion_id", session_id.to_string())
+        .domain("api.science.tanneberger.me")
+        //.path(config.base_url.path().to_string())
+        .secure(true)
+        .http_only(true)
+        .max_age(Duration::minutes(30))
+        .finish();
 
-    (result_cookie, Redirect::to(authorize_url.as_ref()))
+    (jar.add(cookie), Redirect::to(authorize_url.as_ref()))
 }
 
 pub(crate) async fn auth_login_github_callback(
