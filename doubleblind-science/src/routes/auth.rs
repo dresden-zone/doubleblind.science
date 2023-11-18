@@ -50,7 +50,7 @@ pub(crate) async fn auth_login_github(
     let cookie = Cookie::build("seesion_id", session_id.to_string())
         .domain("api.science.tanneberger.me")
         .same_site(SameSite::Lax)
-        //.path(config.base_url.path().to_string())
+        .path("/auth")
         .secure(true)
         .http_only(true)
         .max_age(Duration::minutes(30))
