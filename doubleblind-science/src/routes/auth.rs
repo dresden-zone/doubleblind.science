@@ -16,6 +16,7 @@ use std::str::FromStr;
 use axum::response::{IntoResponse, Redirect};
 use time::Duration;
 use tracing::error;
+use tracing::log::debug;
 use url::Url;
 use uuid::Uuid;
 
@@ -66,9 +67,11 @@ pub(crate) async fn auth_login_github_callback(
     jar: CookieJar,
 ) -> StatusCode {
     if let Some(session_cookie) = jar.get("session_id") {
+        debug!("found cookie ...");
         let session_id = match Uuid::from_str(session_cookie.value()) {
             Ok(value) => value,
-            Err(_) => {
+            Err(e) => {
+                error!("cannot parse session uuid from cookie {:?}", e);
                 return StatusCode::BAD_REQUEST;
             }
         };
@@ -76,6 +79,7 @@ pub(crate) async fn auth_login_github_callback(
         return if let Some(token) = state.csrf_state.get(&session_id) {
             let code = AuthorizationCode::new(query.code);
             if token.secret() == code.secret() {
+                debug!("secrets match! ...");
                 match state
                     .oauth_github_client
                     .exchange_code(code)
@@ -83,7 +87,7 @@ pub(crate) async fn auth_login_github_callback(
                     .await
                 {
                     Ok(token) => {
-                        println!("token for scopes {:?}", token.scopes());
+                        debug!("token for scopes {:?}", token.scopes());
                         state
                             .github_tokens
                             .insert(session_id, token.access_token().clone());

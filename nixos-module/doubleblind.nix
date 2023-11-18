@@ -99,8 +99,8 @@ in
           '';
 
           environment = {
-            "RUST_LOG" = "${cfg.log_level}";
-            "RUST_BACKTRACE" = if (cfg.log_level == "info") then "0" else "1";
+            #"RUST_LOG" = "${cfg.log_level}";
+            #"RUST_BACKTRACE" = if (cfg.log_level == "info") then "0" else "1";
             "DOUBLEBLIND_LISTEN_ADDR" = "${cfg.http.host}:${toString cfg.http.port}";
             "DOUBLEBLIND_POSTGRES_HOST" = "${cfg.database.host}:${toString cfg.database.port}";
             "DOUBLEBLIND_POSTGRES_USERNAME" = "${toString cfg.database.user}";
