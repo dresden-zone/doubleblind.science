@@ -2,6 +2,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::{Error, PgPool, Pool, Postgres};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::{Arc, RwLock};
 
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
@@ -9,14 +10,14 @@ use oauth2::{
     AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
     pub database: Pool<Postgres>,
     pub oauth_github_client: BasicClient,
-    pub csrf_state: HashMap<Uuid, CsrfToken>,
-    pub github_tokens: HashMap<Uuid, AccessToken>,
+    pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
 }
 
 impl DoubleBlindState {
@@ -69,8 +70,7 @@ impl DoubleBlindState {
         DoubleBlindState {
             database: connection,
             oauth_github_client: client,
-            csrf_state: HashMap::new(),
-            github_tokens: HashMap::new(),
+            csrf_state: Default::default()
         }
     }
 }

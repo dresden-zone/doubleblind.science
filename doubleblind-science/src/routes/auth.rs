@@ -35,8 +35,8 @@ pub(crate) async fn auth_login_github(
     State(mut state): State<DoubleBlindState>,
     jar: CookieJar,
 ) -> impl IntoResponse {
-    let (authorize_url, csrf_state) = state
-        .oauth_github_client
+
+    let (authorize_url, csrf_state) = state.oauth_github_client
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the user's public repos and email.
         .add_scope(Scope::new("public_repo".to_string()))
@@ -46,7 +46,7 @@ pub(crate) async fn auth_login_github(
 
     let session_id = Uuid::new_v4();
 
-    state.csrf_state.insert(session_id, csrf_state);
+    state.csrf_state.lock().await.insert(session_id, csrf_state);
     // Build the cookie
 
     let cookie = Cookie::build("session_id", session_id.to_string())
@@ -79,9 +79,10 @@ pub(crate) async fn auth_login_github_callback(
 
         println!("debug {:?}", &state.csrf_state);
 
-        return if let Some(token) = state.csrf_state.get(&session_id) {
+        return if let Some(token) = state.csrf_state.lock().await.remove(&session_id) {
             let code = AuthorizationCode::new(query.code);
-            if token.secret() == code.secret() {
+            println!("{:?} {:?} {:?}", code.secret(), token.secret(), query.state);
+            if &query.state == token.secret() {
                 println!("secrets match! ...");
                 match state
                     .oauth_github_client
@@ -91,10 +92,10 @@ pub(crate) async fn auth_login_github_callback(
                 {
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
-                        state
-                            .github_tokens
-                            .insert(session_id, token.access_token().clone());
-                        state.csrf_state.remove(&session_id);
+                        // TOOD: database
+                        //state
+                        //    .github_tokens
+                        //    .insert(session_id, token.access_token().clone());
                         StatusCode::OK
                     }
                     Err(e) => {
