@@ -13,6 +13,7 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use axum::response::{IntoResponse, Redirect};
 use url::Url;
 use uuid::Uuid;
 
@@ -30,7 +31,7 @@ pub struct ReturnUrl {
 pub(crate) async fn auth_login_github(
     State(mut state): State<DoubleBlindState>,
     jar: CookieJar,
-) -> Json<ReturnUrl> {
+) -> impl IntoResponse {
     let (authorize_url, csrf_state) = state
         .oauth_github_client
         .authorize_url(CsrfToken::new_random)
@@ -44,9 +45,9 @@ pub(crate) async fn auth_login_github(
 
     state.csrf_state.insert(session_id, csrf_state);
 
-    let _ = jar.add(Cookie::new("session_id", session_id.to_string()));
+    let result_cookie = jar.add(Cookie::new("session_id", session_id.to_string()));
 
-    Json(ReturnUrl { url: authorize_url })
+    (result_cookie, Redirect::to(authorize_url.as_ref()))
 }
 
 pub(crate) async fn auth_login_github_callback(
