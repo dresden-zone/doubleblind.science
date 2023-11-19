@@ -3,7 +3,7 @@ buildPackage {
   pname = "doubleblind-backend";
   version = "0.1.0";
 
-  src = ./.;
+  src = ../.;
 
   cargoSha256 = lib.fakeSha256;
 

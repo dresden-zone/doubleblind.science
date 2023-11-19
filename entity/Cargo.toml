@@ -1,0 +1,12 @@
+[package]
+name = "entity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+hickory-proto = { version = "0.24", default-features = false, optional = true }
+time = { version = "0.3", default-features = false, features = ["serde"] }
+uuid = { version = "1.4", default-features = false, features = ["serde"] }
+sea-orm = { version = "0.12", default-features = false }
+thiserror = "1.0"

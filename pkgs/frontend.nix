@@ -1,6 +1,6 @@
 { domain, mkPnpmPackage }:
 mkPnpmPackage {
-    src = ./doubleblind-frontend/.;
+    src = ../doubleblind-frontend/.;
 
     installInPlace = true;
 

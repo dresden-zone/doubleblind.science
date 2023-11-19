@@ -11,7 +11,9 @@ use crate::args::DoubleBlindArgs;
 use crate::state::DoubleBlindState;
 
 mod args;
+pub mod database;
 mod routes;
+pub mod service;
 mod state;
 
 #[tokio::main]
@@ -47,9 +49,6 @@ async fn main() -> anyhow::Result<()> {
         &args.github_client_secret_file,
     )
     .await;
-
-    debug!("starting migrations ...");
-    sqlx::migrate!("../migrations").run(&state.database).await?;
 
     let router = route().layer(cors).with_state(state);
     let server = Server::bind(&args.listen_addr).serve(router.into_make_service());

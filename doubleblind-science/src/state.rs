@@ -3,6 +3,7 @@ use sqlx::{Error, PgPool, Pool, Postgres};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
@@ -10,14 +11,19 @@ use oauth2::{
     AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
     TokenResponse, TokenUrl,
 };
+use sea_orm::{ConnectOptions, Database};
 use tokio::sync::Mutex;
 use uuid::Uuid;
+use migration::{Migrator, MigratorTrait};
+use crate::service::projects::ProjectService;
+use crate::service::user::UserService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
-    pub database: Pool<Postgres>,
     pub oauth_github_client: BasicClient,
     pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
+    pub user_service: UserService,
+    pub project_service: ProjectService
 }
 
 impl DoubleBlindState {
@@ -30,20 +36,23 @@ impl DoubleBlindState {
         github_client_secret_path: &Path,
     ) -> DoubleBlindState {
         // reading secrets from files
-        let database_password =
-            std::fs::read_to_string(password_file).expect(&*format!("cannot read password file: {:?}", &password_file));
+        let database_password = std::fs::read_to_string(password_file)
+            .expect(&*format!("cannot read password file: {:?}", &password_file));
         let github_client_secret = std::fs::read_to_string(github_client_secret_path)
             .expect("cannot read github secret file");
 
-        // opening connection to postgres
-        let connection = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&*format!(
-                "postgres://{}:{}@{}/{}",
-                username, database_password, host, database
-            ))
-            .await
-            .expect("cannot connect to database");
+        let mut db_options = ConnectOptions::new(database_password);
+        db_options
+            .max_connections(100)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(8))
+            .acquire_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(8))
+            .sqlx_logging(false);
+
+        let db = Arc::new(Database::connect(db_options).await.expect("cannot connect to postgres"));
+        Migrator::up(&*db, None).await.expect("cannot run migrations");
 
         // adding parsing information required to talk to github api
         let parsed_github_client_id = ClientId::new(github_client_id.to_string());
@@ -68,9 +77,10 @@ impl DoubleBlindState {
         );
 
         DoubleBlindState {
-            database: connection,
             oauth_github_client: client,
-            csrf_state: Default::default()
+            csrf_state: Default::default(),
+            user_service: UserService::from_db(db.clone()),
+            project_service: ProjectService::from_db(db.clone()),
         }
     }
 }

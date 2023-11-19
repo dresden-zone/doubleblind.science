@@ -1,9 +1,12 @@
 use oauth2::basic::BasicClient;
+use std::os::linux::raw::stat;
 
 // Alternatively, this can be `oauth2::curl::http_client` or a custom client.
+use crate::database::GithubUser;
 use crate::state::DoubleBlindState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
+use axum::response::{IntoResponse, Redirect};
 use axum::Json;
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
@@ -13,7 +16,6 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use axum::response::{IntoResponse, Redirect};
 use time::Duration;
 use tracing::error;
 use tracing::log::debug;
@@ -35,8 +37,8 @@ pub(crate) async fn auth_login_github(
     State(mut state): State<DoubleBlindState>,
     jar: CookieJar,
 ) -> impl IntoResponse {
-
-    let (authorize_url, csrf_state) = state.oauth_github_client
+    let (authorize_url, csrf_state) = state
+        .oauth_github_client
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the user's public repos and email.
         .add_scope(Scope::new("public_repo".to_string()))
@@ -77,13 +79,10 @@ pub(crate) async fn auth_login_github_callback(
             }
         };
 
-        println!("debug {:?}", &state.csrf_state);
-
         return if let Some(token) = state.csrf_state.lock().await.remove(&session_id) {
-            let code = AuthorizationCode::new(query.code);
-            println!("{:?} {:?} {:?}", code.secret(), token.secret(), query.state);
+            let code = AuthorizationCode::new(query.code.clone());
             if &query.state == token.secret() {
-                println!("secrets match! ...");
+                println!("{:?} {:?}", &query.code, &query.state);
                 match state
                     .oauth_github_client
                     .exchange_code(code)
@@ -92,6 +91,8 @@ pub(crate) async fn auth_login_github_callback(
                 {
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
+                        println!("token {:?}", token);
+
                         // TOOD: database
                         //state
                         //    .github_tokens
@@ -101,7 +102,7 @@ pub(crate) async fn auth_login_github_callback(
                     Err(e) => {
                         println!("error when trying ot fetch github token {:?}", e);
                         StatusCode::BAD_REQUEST
-                    },
+                    }
                 }
             } else {
                 StatusCode::UNAUTHORIZED
