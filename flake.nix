@@ -110,7 +110,8 @@
             run-migration-based = pkgs.writeScriptBin "run-migration" ''
               ${pkgs.sea-orm-cli}/bin/sea-orm-cli migration run --migration-dir ${self}/migrations-based
             '';
-            inherit backend frontend;
+            doubleblind-backend = backend;
+            doubleblind-frontend = frontend;
 
             default = backend;
           };
