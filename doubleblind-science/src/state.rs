@@ -13,6 +13,7 @@ use oauth2::{
 };
 use sea_orm::{ConnectOptions, Database};
 use tokio::sync::Mutex;
+use tracing_subscriber::fmt::format;
 use uuid::Uuid;
 use migration::{Migrator, MigratorTrait};
 use crate::service::projects::ProjectService;
@@ -41,7 +42,7 @@ impl DoubleBlindState {
         let github_client_secret = std::fs::read_to_string(github_client_secret_path)
             .expect("cannot read github secret file");
 
-        let mut db_options = ConnectOptions::new(database_password);
+        let mut db_options = ConnectOptions::new(format!("postgresql://{}:{}@{}/{}", username, database_password, host, database));
         db_options
             .max_connections(100)
             .min_connections(5)

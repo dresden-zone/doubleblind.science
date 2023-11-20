@@ -13,5 +13,7 @@ import {IconTudComponent} from "../../core/icons/icon-tud/icon-tud.component";
   styleUrl: './landingpage.component.scss'
 })
 export class LandingpageComponent {
-
+  protected call() {
+    location.href='https://api.science.tanneberger.me/auth/github/login';
+  }
 }
