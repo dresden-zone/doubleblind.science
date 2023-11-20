@@ -1,13 +1,13 @@
+use std::collections::HashMap;
 use oauth2::basic::BasicClient;
 use std::os::linux::raw::stat;
 
 // Alternatively, this can be `oauth2::curl::http_client` or a custom client.
-use crate::database::GithubUser;
+use crate::structs::{GithubUser, GithubUserInfo};
 use crate::state::DoubleBlindState;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
-use axum::Json;
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -16,9 +16,9 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use reqwest::Response;
 use time::Duration;
 use tracing::error;
-use tracing::log::debug;
 use url::Url;
 use uuid::Uuid;
 
@@ -67,7 +67,7 @@ pub(crate) async fn auth_login_github_callback(
     State(mut state): State<DoubleBlindState>,
     Query(query): Query<AuthCall>,
     jar: CookieJar,
-) -> StatusCode {
+) -> impl IntoResponse {
     println!("request ....");
     if let Some(session_cookie) = jar.get("session_id") {
         println!("found cookie ...");
@@ -91,12 +91,46 @@ pub(crate) async fn auth_login_github_callback(
                 {
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
+                        let refresh_token = token.access_token().secret().clone();
                         println!("token {:?}", token);
 
-                        // TOOD: database
-                        //state
-                        //    .github_tokens
-                        //    .insert(session_id, token.access_token().clone());
+                        let client = reqwest::Client::new();
+                        let res: GithubUserInfo = match client
+                            .get("https://api.github.com/me")
+                            .header("Accept", "application/vnd.github+json")
+                            .header("Authorization", refresh_token.clone())
+                            .header("X-GitHub-Api-Version", "2022-11-28")
+                            .send()
+                            .await {
+                            Ok(value) => match value
+                                .json::<GithubUserInfo>()
+                                .await {
+                                Ok(parsed_json) => parsed_json,
+                                Err(e) => {
+                                    error!("cannot parse request body from github {:?}", e);
+                                    return StatusCode::INTERNAL_SERVER_ERROR;
+                                }
+                        }
+                            Err(e) => {
+                                error!("error while fetching user id from github {:?}", e);
+                                return StatusCode::INTERNAL_SERVER_ERROR;
+                            }
+                        };
+
+                       if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
+                           // update user token
+                           if let Err(e) = state.user_service.update_github_token(user.id, refresh_token.clone() ).await {
+                               error!("error while trying to update github refresh token {:?}", e);
+                               return StatusCode::INTERNAL_SERVER_ERROR;
+                           }
+                       } else {
+                           // create new user
+                           if let Err(e) = state.user_service.create_github_user(refresh_token.clone(), res.id).await {
+                               error!("error while trying to create user {:?}", e);
+                               return StatusCode::INTERNAL_SERVER_ERROR;
+                           }
+                       }
+
                         StatusCode::OK
                     }
                     Err(e) => {

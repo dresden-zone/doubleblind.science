@@ -13,6 +13,7 @@ pub struct Model {
     pub admin: bool,
     #[sea_orm(column_type = "Text", nullable)]
     pub github_refresh_token: Option<String>,
+    pub github_user_id: Option<i64>,
     pub last_update: TimeDateTimeWithTimeZone,
 }
 

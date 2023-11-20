@@ -6,6 +6,8 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection, Select};
 use std::sync::Arc;
 use time::OffsetDateTime;
 use uuid::Uuid;
+use sea_orm::QueryFilter;
+use sea_orm::ColumnTrait;
 
 #[derive(Clone)]
 pub(crate) struct UserService {
@@ -24,10 +26,16 @@ impl UserService {
         Ok(users::Entity::find_by_id(user_id).one(&*self.db).await?)
     }
 
+    pub(crate) async fn get_user_by_github(&mut self, github_id: i64) -> anyhow::Result<Option<users::Model>> {
+        Ok(users::Entity::find()
+            .filter(users::Column::GithubUserId.eq(github_id))
+            .one(&*self.db).await?)
+    }
+
     pub(crate) async fn create_github_user(
         &mut self,
-        zone_id: Uuid,
         github_token: String,
+        github_id: i64
     ) -> anyhow::Result<users::Model> {
         let user_uuid = Uuid::new_v4();
 
@@ -36,6 +44,7 @@ impl UserService {
             platform: Set(1),
             trusted: Set(false),
             admin: Set(false),
+            github_user_id: Set(Some(github_id)),
             github_refresh_token: Set(Some(github_token)),
             last_update: Set(OffsetDateTime::now_utc()),
         }
@@ -65,6 +74,7 @@ impl UserService {
                 platform: Unchanged(user.platform),
                 trusted: Set(trusted),
                 admin: Set(admin),
+                github_user_id: Set(user.github_user_id),
                 github_refresh_token: Unchanged(user.github_refresh_token),
                 last_update: Set(OffsetDateTime::now_utc()),
             }
@@ -91,6 +101,7 @@ impl UserService {
                 platform: Unchanged(user.platform),
                 trusted: Unchanged(user.trusted),
                 admin: Unchanged(user.admin),
+                github_user_id: Unchanged(user.github_user_id),
                 github_refresh_token: Set(user.github_refresh_token),
                 last_update: Set(OffsetDateTime::now_utc()),
             }

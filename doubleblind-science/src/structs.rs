@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use sqlx::FromRow;
 use uuid::Uuid;
 
@@ -5,4 +6,10 @@ use uuid::Uuid;
 pub struct GithubUser {
     id: Uuid,
     refresh_token: String,
+}
+
+
+#[derive(Deserialize)]
+pub struct GithubUserInfo {
+    pub id: i64,
 }

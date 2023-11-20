@@ -11,7 +11,7 @@ use crate::args::DoubleBlindArgs;
 use crate::state::DoubleBlindState;
 
 mod args;
-pub mod database;
+pub mod structs;
 mod routes;
 pub mod service;
 mod state;
