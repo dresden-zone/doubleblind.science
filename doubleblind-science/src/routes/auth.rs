@@ -16,7 +16,6 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use reqwest::Response;
 use time::Duration;
 use tracing::error;
 use url::Url;
@@ -68,14 +67,17 @@ pub(crate) async fn auth_login_github_callback(
     Query(query): Query<AuthCall>,
     jar: CookieJar,
 ) -> impl IntoResponse {
+    const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
+    const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
+
     println!("request ....");
-    if let Some(session_cookie) = jar.get("session_id") {
+    return if let Some(session_cookie) = jar.get("session_id") {
         println!("found cookie ...");
         let session_id = match Uuid::from_str(session_cookie.value()) {
             Ok(value) => value,
             Err(e) => {
                 println!("cannot parse session uuid from cookie {:?}", e);
-                return StatusCode::BAD_REQUEST;
+                return Redirect::to(ERROR_REDIRECT);
             }
         };
 
@@ -108,43 +110,43 @@ pub(crate) async fn auth_login_github_callback(
                                 Ok(parsed_json) => parsed_json,
                                 Err(e) => {
                                     error!("cannot parse request body from github {:?}", e);
-                                    return StatusCode::INTERNAL_SERVER_ERROR;
+                                    return Redirect::to(ERROR_REDIRECT);
                                 }
-                        }
+                            }
                             Err(e) => {
                                 error!("error while fetching user id from github {:?}", e);
-                                return StatusCode::INTERNAL_SERVER_ERROR;
+                                return Redirect::to(ERROR_REDIRECT);
                             }
                         };
 
-                       if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
-                           // update user token
-                           if let Err(e) = state.user_service.update_github_token(user.id, refresh_token.clone() ).await {
-                               error!("error while trying to update github refresh token {:?}", e);
-                               return StatusCode::INTERNAL_SERVER_ERROR;
-                           }
-                       } else {
-                           // create new user
-                           if let Err(e) = state.user_service.create_github_user(refresh_token.clone(), res.id).await {
-                               error!("error while trying to create user {:?}", e);
-                               return StatusCode::INTERNAL_SERVER_ERROR;
-                           }
-                       }
+                        if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
+                            // update user token
+                            if let Err(e) = state.user_service.update_github_token(user.id, refresh_token.clone()).await {
+                                error!("error while trying to update github refresh token {:?}", e);
+                                return Redirect::to(ERROR_REDIRECT);
+                            }
+                        } else {
+                            // create new user
+                            if let Err(e) = state.user_service.create_github_user(refresh_token.clone(), res.id).await {
+                                error!("error while trying to create user {:?}", e);
+                                return Redirect::to(ERROR_REDIRECT);
+                            }
+                        }
 
-                        StatusCode::OK
+                        Redirect::to(SUCCESS_REDIRECT)
                     }
                     Err(e) => {
                         println!("error when trying ot fetch github token {:?}", e);
-                        StatusCode::BAD_REQUEST
+                        Redirect::to(ERROR_REDIRECT)
                     }
                 }
             } else {
-                StatusCode::UNAUTHORIZED
+                Redirect::to(ERROR_REDIRECT)
             }
         } else {
-            StatusCode::UNAUTHORIZED
-        };
+            Redirect::to(ERROR_REDIRECT)
+        }
     } else {
-        StatusCode::BAD_REQUEST
+        Redirect::to(ERROR_REDIRECT)
     }
 }

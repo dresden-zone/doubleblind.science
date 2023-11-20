@@ -15,7 +15,6 @@ use serde::{Deserialize, Deserializer};
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
     Router::new()
-        //.route("/auth/callback/github", get(simple)
         .route("/auth/login/github", get(auth_login_github))
         .route("/auth/callback/github", get(auth_login_github_callback))
 }
