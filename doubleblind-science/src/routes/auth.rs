@@ -130,6 +130,8 @@ pub(super) async fn auth_login_github_callback(
   info!("Fetched user info.");
 
   let user = if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
+    info!("yyy");
+
     // update user token
     state
       .user_service
@@ -148,6 +150,8 @@ pub(super) async fn auth_login_github_callback(
 
     user
   } else {
+    info!("xxx");
+
     let refresh_token = token
       .refresh_token()
       .ok_or(Redirect::to(ERROR_REDIRECT))?
