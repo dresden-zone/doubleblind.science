@@ -4,23 +4,22 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
-tokio = { version = "1.34", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
-axum = { version = "0.6", default-features = false, features = ["tokio", "http1", "json", "macros", "query"] }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
-tracing = { version = "0.1", default-features = false } #features = ["release_max_level_info"]
-uuid = { version = "1.5", default-features = false, features = ["v4", "serde"] }
-serde = { version = "1.0", features = ["derive"] }
-clap = { version = "4.4", features = ["derive", "env"] }
-time = { version = "0.3", default-features = false }
-url = { version = "2.4", default-features = false }
-tower-http = { version = "0.4", features = ["cors"] }
-sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "migrate"] }
-anyhow = "1.0"
-oauth2 = { version = "4.4", features = ["reqwest"] }
-axum-extra = { version = "0.8", features = ["cookie"] }
 sea-orm = { version = "0.12", default-features = false, features = ["runtime-tokio", "sqlx-postgres", "with-uuid"] }
-sea-query = { version = "0.30", default-features = false }
+axum = { version = "0.6", default-features = false, features = ["tokio", "http1", "json", "macros", "query"] }
+tokio = { version = "1.34", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio", "postgres", "migrate"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
+tracing = { version = "0.1", default-features = false, features = ["release_max_level_info"] }
+uuid = { version = "1.6", default-features = false, features = ["v4", "serde"] }
+tower-http = { version = "0.4", default-features = false, features = ["cors"] }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+sea-query = { version = "0.30", default-features = false }
+clap = { version = "4.4", features = ["derive", "env"] }
+axum-extra = { version = "0.8", features = ["cookie"] }
+time = { version = "0.3", default-features = false }
+oauth2 = { version = "4.4", features = ["reqwest"] }
+url = { version = "2.4", default-features = false }
 migration = { path = "../migration" }
 entity = { path = "../entity" }
+anyhow = "1.0"

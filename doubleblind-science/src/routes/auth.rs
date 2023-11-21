@@ -73,13 +73,10 @@ pub(super) async fn auth_login_github_callback(
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
-  println!("request ....");
   return if let Some(csrf_cookie) = jar.get(CSRF_COOKIE) {
-    println!("found cookie ...");
     let csrf_state_id = match Uuid::from_str(csrf_cookie.value()) {
       Ok(value) => value,
       Err(e) => {
-        println!("cannot parse session uuid from cookie {:?}", e);
         return Err(Redirect::to(ERROR_REDIRECT));
       }
     };
@@ -94,7 +91,6 @@ pub(super) async fn auth_login_github_callback(
           .await
         {
           Ok(token) => {
-            println!("token for scopes {:?}", token.scopes());
             let access_token = token.access_token().secret().clone();
 
             let client = reqwest::Client::new();
@@ -192,7 +188,6 @@ pub(super) async fn auth_login_github_callback(
             Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
           }
           Err(e) => {
-            println!("error when trying ot fetch github token {:?}", e);
             Err(Redirect::to(ERROR_REDIRECT))
           }
         }
