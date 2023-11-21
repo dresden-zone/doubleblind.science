@@ -22,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
   let args = DoubleBlindArgs::parse();
 
   let subscriber = FmtSubscriber::builder()
-    .with_max_level(Level::TRACE)
+    .with_max_level(Level::DEBUG)
     .compact()
     .finish();
 
