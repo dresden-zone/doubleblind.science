@@ -42,18 +42,20 @@ impl ProjectService {
         let project_uuid = Uuid::new_v4();
 
         if let Some(user) = users::Entity::find_by_id(owner_uuid).one(&*self.db).await? {
-            Ok(Some(project::ActiveModel {
-                id: Set(project_uuid),
-                owner: Set(owner_uuid),
-                domain: Set(domain),
-                commit: Set(commit),
-                github_id: Set(Some(github_id)),
-                created_at: Set(OffsetDateTime::now_utc()),
-                last_update: Set(OffsetDateTime::now_utc()),
-                trusted: Set(user.trusted),
-            }
-            .insert(&*self.db)
-            .await?))
+            Ok(Some(
+                project::ActiveModel {
+                    id: Set(project_uuid),
+                    owner: Set(owner_uuid),
+                    domain: Set(domain),
+                    commit: Set(commit),
+                    github_id: Set(Some(github_id)),
+                    created_at: Set(OffsetDateTime::now_utc()),
+                    last_update: Set(OffsetDateTime::now_utc()),
+                    trusted: Set(user.trusted),
+                }
+                .insert(&*self.db)
+                .await?,
+            ))
         } else {
             Ok(None)
         }

@@ -1,13 +1,13 @@
-use entity::{users};
+use entity::users;
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
+use sea_orm::ColumnTrait;
+use sea_orm::QueryFilter;
 use sea_orm::{ActiveModelBehavior, Related, Set};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, Select};
 use std::sync::Arc;
 use time::OffsetDateTime;
 use uuid::Uuid;
-use sea_orm::QueryFilter;
-use sea_orm::ColumnTrait;
 
 #[derive(Clone)]
 pub(crate) struct UserService {
@@ -26,16 +26,20 @@ impl UserService {
         Ok(users::Entity::find_by_id(user_id).one(&*self.db).await?)
     }
 
-    pub(crate) async fn get_user_by_github(&mut self, github_id: i64) -> anyhow::Result<Option<users::Model>> {
+    pub(crate) async fn get_user_by_github(
+        &mut self,
+        github_id: i64,
+    ) -> anyhow::Result<Option<users::Model>> {
         Ok(users::Entity::find()
             .filter(users::Column::GithubUserId.eq(github_id))
-            .one(&*self.db).await?)
+            .one(&*self.db)
+            .await?)
     }
 
     pub(crate) async fn create_github_user(
         &mut self,
         github_token: String,
-        github_id: i64
+        github_id: i64,
     ) -> anyhow::Result<users::Model> {
         let user_uuid = Uuid::new_v4();
 
@@ -46,6 +50,9 @@ impl UserService {
             admin: Set(false),
             github_user_id: Set(Some(github_id)),
             github_refresh_token: Set(Some(github_token)),
+            github_refresh_token_expire: Set(None),
+            github_access_token: Set(None),
+            github_access_token_expire: Set(None),
             last_update: Set(OffsetDateTime::now_utc()),
         }
         .insert(&*self.db)
@@ -76,6 +83,9 @@ impl UserService {
                 admin: Set(admin),
                 github_user_id: Set(user.github_user_id),
                 github_refresh_token: Unchanged(user.github_refresh_token),
+                github_refresh_token_expire: Set(None),
+                github_access_token: Set(None),
+                github_access_token_expire: Set(None),
                 last_update: Set(OffsetDateTime::now_utc()),
             }
             .update(&*self.db)
@@ -91,9 +101,7 @@ impl UserService {
         user_id: Uuid,
         token: String,
     ) -> anyhow::Result<bool> {
-        let found_user = users::Entity::find_by_id(user_id)
-            .one(&*self.db)
-            .await?;
+        let found_user = users::Entity::find_by_id(user_id).one(&*self.db).await?;
 
         if let Some(user) = found_user {
             users::ActiveModel {
@@ -103,6 +111,9 @@ impl UserService {
                 admin: Unchanged(user.admin),
                 github_user_id: Unchanged(user.github_user_id),
                 github_refresh_token: Set(user.github_refresh_token),
+                github_refresh_token_expire: Set(None),
+                github_access_token: Set(None),
+                github_access_token_expire: Set(None),
                 last_update: Set(OffsetDateTime::now_utc()),
             }
             .update(&*self.db)

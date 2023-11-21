@@ -11,10 +11,10 @@ use crate::args::DoubleBlindArgs;
 use crate::state::DoubleBlindState;
 
 mod args;
-pub mod structs;
 mod routes;
 pub mod service;
 mod state;
+pub mod structs;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

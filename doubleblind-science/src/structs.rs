@@ -8,7 +8,6 @@ pub struct GithubUser {
     refresh_token: String,
 }
 
-
 #[derive(Deserialize)]
 pub struct GithubUserInfo {
     pub id: i64,

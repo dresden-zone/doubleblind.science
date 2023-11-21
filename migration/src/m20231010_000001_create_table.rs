@@ -19,6 +19,9 @@ impl MigrationTrait for Migration {
         trusted BOOL NOT NULL,
         admin BOOL NOT NULL,
         github_refresh_token TEXT,
+        github_refresh_token_expire TIMESTAMPTZ,
+        github_access_token TEXT,
+        github_access_token_expire TIMESTAMPTZ,
         github_user_id BIGINT,
         last_update TIMESTAMPTZ NOT NULL
       );

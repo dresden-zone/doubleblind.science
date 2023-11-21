@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use oauth2::basic::BasicClient;
+use std::collections::HashMap;
 use std::os::linux::raw::stat;
 
 // Alternatively, this can be `oauth2::curl::http_client` or a custom client.
-use crate::structs::{GithubUser, GithubUserInfo};
 use crate::state::DoubleBlindState;
+use crate::structs::{GithubUser, GithubUserInfo};
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
@@ -68,7 +68,7 @@ pub(crate) async fn auth_login_github_callback(
     jar: CookieJar,
 ) -> impl IntoResponse {
     const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
-    const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
+    const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
     println!("request ....");
     return if let Some(session_cookie) = jar.get("session_id") {
@@ -93,24 +93,32 @@ pub(crate) async fn auth_login_github_callback(
                 {
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
-                        let refresh_token = token.access_token().secret().clone();
-                        println!("token {:?}", refresh_token);
+                        let access_token = token.access_token().secret().clone();
+                        let refresh_token = match token.refresh_token() {
+                            Some(token) => token.secret().clone(),
+                            None => {
+                                error!("couldn't extract refresh token!");
+                                return Redirect::to(ERROR_REDIRECT);
+                            }
+                        };
 
                         let client = reqwest::Client::new();
 
                         let res: GithubUserInfo = match client
                             .get("https://api.github.com/user")
                             .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-                            .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", refresh_token.clone()))
+                            .header(
+                                reqwest::header::AUTHORIZATION,
+                                format!("Bearer {}", access_token.clone()),
+                            )
                             .header("X-GitHub-Api-Version", "2022-11-28")
                             .header(reqwest::header::USER_AGENT, "doubleblind-science")
                             .send()
-                            .await {
+                            .await
+                        {
                             Ok(value) => {
                                 print!("{:?}", &value);
-                                match value
-                                    .json::<GithubUserInfo>()
-                                    .await {
+                                match value.json::<GithubUserInfo>().await {
                                     Ok(parsed_json) => parsed_json,
                                     Err(e) => {
                                         error!("cannot parse request body from github {:?}", e);
@@ -124,15 +132,24 @@ pub(crate) async fn auth_login_github_callback(
                             }
                         };
 
-                        if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
+                        if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await
+                        {
                             // update user token
-                            if let Err(e) = state.user_service.update_github_token(user.id, refresh_token.clone()).await {
+                            if let Err(e) = state
+                                .user_service
+                                .update_github_token(user.id, refresh_token.clone())
+                                .await
+                            {
                                 error!("error while trying to update github refresh token {:?}", e);
                                 return Redirect::to(ERROR_REDIRECT);
                             }
                         } else {
                             // create new user
-                            if let Err(e) = state.user_service.create_github_user(refresh_token.clone(), res.id).await {
+                            if let Err(e) = state
+                                .user_service
+                                .create_github_user(refresh_token.clone(), res.id)
+                                .await
+                            {
                                 error!("error while trying to create user {:?}", e);
                                 return Redirect::to(ERROR_REDIRECT);
                             }
@@ -150,8 +167,8 @@ pub(crate) async fn auth_login_github_callback(
             }
         } else {
             Redirect::to(ERROR_REDIRECT)
-        }
+        };
     } else {
         Redirect::to(ERROR_REDIRECT)
-    }
+    };
 }

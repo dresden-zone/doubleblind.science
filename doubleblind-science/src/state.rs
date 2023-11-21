@@ -5,6 +5,9 @@ use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use crate::service::projects::ProjectService;
+use crate::service::user::UserService;
+use migration::{Migrator, MigratorTrait};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
@@ -15,16 +18,13 @@ use sea_orm::{ConnectOptions, Database};
 use tokio::sync::Mutex;
 use tracing_subscriber::fmt::format;
 use uuid::Uuid;
-use migration::{Migrator, MigratorTrait};
-use crate::service::projects::ProjectService;
-use crate::service::user::UserService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
     pub oauth_github_client: BasicClient,
     pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
     pub user_service: UserService,
-    pub project_service: ProjectService
+    pub project_service: ProjectService,
 }
 
 impl DoubleBlindState {
@@ -42,7 +42,10 @@ impl DoubleBlindState {
         let github_client_secret = std::fs::read_to_string(github_client_secret_path)
             .expect("cannot read github secret file");
 
-        let mut db_options = ConnectOptions::new(format!("postgresql://{}:{}@{}/{}", username, database_password, host, database));
+        let mut db_options = ConnectOptions::new(format!(
+            "postgresql://{}:{}@{}/{}",
+            username, database_password, host, database
+        ));
         db_options
             .max_connections(100)
             .min_connections(5)
@@ -52,8 +55,14 @@ impl DoubleBlindState {
             .max_lifetime(Duration::from_secs(8))
             .sqlx_logging(false);
 
-        let db = Arc::new(Database::connect(db_options).await.expect("cannot connect to postgres"));
-        Migrator::up(&*db, None).await.expect("cannot run migrations");
+        let db = Arc::new(
+            Database::connect(db_options)
+                .await
+                .expect("cannot connect to postgres"),
+        );
+        Migrator::up(&*db, None)
+            .await
+            .expect("cannot run migrations");
 
         // adding parsing information required to talk to github api
         let parsed_github_client_id = ClientId::new(github_client_id.to_string());
