@@ -6,31 +6,31 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub platform: i32,
-    pub trusted: bool,
-    pub admin: bool,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub github_refresh_token: Option<String>,
-    pub github_refresh_token_expire: Option<TimeDateTimeWithTimeZone>,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub github_access_token: Option<String>,
-    pub github_access_token_expire: Option<TimeDateTimeWithTimeZone>,
-    pub github_user_id: Option<i64>,
-    pub last_update: TimeDateTimeWithTimeZone,
+  #[sea_orm(primary_key, auto_increment = false)]
+  pub id: Uuid,
+  pub platform: i32,
+  pub trusted: bool,
+  pub admin: bool,
+  #[sea_orm(column_type = "Text", nullable)]
+  pub github_refresh_token: Option<String>,
+  pub github_refresh_token_expire: Option<TimeDateTimeWithTimeZone>,
+  #[sea_orm(column_type = "Text", nullable)]
+  pub github_access_token: Option<String>,
+  pub github_access_token_expire: Option<TimeDateTimeWithTimeZone>,
+  pub github_user_id: Option<i64>,
+  pub last_update: TimeDateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::project::Entity")]
-    Project,
+  #[sea_orm(has_many = "super::project::Entity")]
+  Project,
 }
 
 impl Related<super::project::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Project.def()
-    }
+  fn to() -> RelationDef {
+    Relation::Project.def()
+  }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

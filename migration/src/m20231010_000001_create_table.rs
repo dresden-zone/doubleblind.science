@@ -5,13 +5,13 @@ pub struct Migration;
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let db = manager.get_connection();
+  async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    let db = manager.get_connection();
 
-        // TODO: CAA, SRV
+    // TODO: CAA, SRV
 
-        db.execute_unprepared(
-            "
+    db.execute_unprepared(
+      "
 
       CREATE TABLE users (
         id UUID PRIMARY KEY,
@@ -37,17 +37,17 @@ impl MigrationTrait for Migration {
         trusted BOOL NOT NULL
       );
     ",
-        )
-        .await?;
+    )
+    .await?;
 
-        Ok(())
-    }
+    Ok(())
+  }
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "
+  async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    manager
+      .get_connection()
+      .execute_unprepared(
+        "
         DROP TABLE github_users;
         DROP TABLE users;
         DROP TABLE record_aaaa;
@@ -56,9 +56,9 @@ impl MigrationTrait for Migration {
         DROP TABLE record_ns;
         DROP TABLE record_txt;
       ",
-            )
-            .await?;
+      )
+      .await?;
 
-        Ok(())
-    }
+    Ok(())
+  }
 }

@@ -6,34 +6,34 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "project")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub owner: Uuid,
-    #[sea_orm(column_type = "Text")]
-    pub domain: String,
-    pub commit: String,
-    pub github_id: Option<i64>,
-    pub created_at: TimeDateTimeWithTimeZone,
-    pub last_update: TimeDateTimeWithTimeZone,
-    pub trusted: bool,
+  #[sea_orm(primary_key, auto_increment = false)]
+  pub id: Uuid,
+  pub owner: Uuid,
+  #[sea_orm(column_type = "Text")]
+  pub domain: String,
+  pub commit: String,
+  pub github_id: Option<i64>,
+  pub created_at: TimeDateTimeWithTimeZone,
+  pub last_update: TimeDateTimeWithTimeZone,
+  pub trusted: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::users::Entity",
-        from = "Column::Owner",
-        to = "super::users::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    Users,
+  #[sea_orm(
+    belongs_to = "super::users::Entity",
+    from = "Column::Owner",
+    to = "super::users::Column::Id",
+    on_update = "NoAction",
+    on_delete = "NoAction"
+  )]
+  Users,
 }
 
 impl Related<super::users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Users.def()
-    }
+  fn to() -> RelationDef {
+    Relation::Users.def()
+  }
 }
 
 impl ActiveModelBehavior for ActiveModel {}

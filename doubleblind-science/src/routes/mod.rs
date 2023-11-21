@@ -8,8 +8,8 @@ use crate::state::DoubleBlindState;
 mod auth;
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
-    Router::new()
-        .route("/auth/login/github", get(auth_login_github))
-        .route("/auth/callback/github", get(auth_login_github_callback))
-        .route("/auth/me", get(auth_me))
+  Router::new()
+    .route("/auth/login/github", get(auth_login_github))
+    .route("/auth/callback/github", get(auth_login_github_callback))
+    .route("/auth/me", get(auth_me))
 }
