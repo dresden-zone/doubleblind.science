@@ -4,8 +4,8 @@ use std::sync::Arc;
 use axum::extract::{Query, State};
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
-use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use oauth2::reqwest::async_http_client;
+use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tracing::{error, info};
@@ -13,7 +13,7 @@ use url::Url;
 use uuid::Uuid;
 
 // Alternatively, this can be `oauth2::curl::http_client` or a custom client.
-use crate::auth::{Session, SESSION_COOKIE, SessionData};
+use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
 use crate::structs::GithubUserInfo;
 
@@ -42,6 +42,7 @@ pub(super) async fn auth_login_github(
     .add_scope(Scope::new("repo".to_string()))
     .add_scope(Scope::new("user:email".to_string()))
     .add_scope(Scope::new("write:repo_hook".to_string()))
+    .add_scope(Scope::new("offline_access".to_string()))
     .url();
 
   let csrf_state_id = Uuid::new_v4();
