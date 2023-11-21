@@ -8,7 +8,7 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
-use tracing::{error, info};
+use tracing::info;
 use url::Url;
 use uuid::Uuid;
 
@@ -73,131 +73,127 @@ pub(super) async fn auth_login_github_callback(
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
-  return if let Some(csrf_cookie) = jar.get(CSRF_COOKIE) {
-    let csrf_state_id = match Uuid::from_str(csrf_cookie.value()) {
-      Ok(value) => value,
-      Err(e) => {
-        return Err(Redirect::to(ERROR_REDIRECT));
-      }
-    };
+  info!("Initiating authentication.");
 
-    return if let Some(csrf_state) = state.csrf_state.lock().await.remove(&csrf_state_id) {
-      let code = AuthorizationCode::new(query.code.clone());
-      if &query.state == csrf_state.secret() {
-        match state
-          .oauth_github_client
-          .exchange_code(code)
-          .request_async(async_http_client)
-          .await
-        {
-          Ok(token) => {
-            let access_token = token.access_token().secret().clone();
+  let csrf_cookie = jar.get(CSRF_COOKIE).ok_or(Redirect::to(ERROR_REDIRECT))?;
+  info!("Found cookie.");
 
-            let client = reqwest::Client::new();
+  let csrf_state_id =
+    Uuid::from_str(csrf_cookie.value()).map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+  info!("Found csrf state id: {}", csrf_state_id);
 
-            let res: GithubUserInfo = match client
-              .get("https://api.github.com/user")
-              .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-              .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token.clone()),
-              )
-              .header("X-GitHub-Api-Version", "2022-11-28")
-              .header(reqwest::header::USER_AGENT, "doubleblind-science")
-              .send()
-              .await
-            {
-              Ok(value) => {
-                print!("{:?}", &value);
-                match value.json::<GithubUserInfo>().await {
-                  Ok(parsed_json) => parsed_json,
-                  Err(e) => {
-                    error!("cannot parse request body from github {:?}", e);
-                    return Err(Redirect::to(ERROR_REDIRECT));
-                  }
-                }
-              }
-              Err(e) => {
-                error!("error while fetching user id from github {:?}", e);
-                return Err(Redirect::to(ERROR_REDIRECT));
-              }
-            };
+  let csrf_state = state
+    .csrf_state
+    .lock()
+    .await
+    .remove(&csrf_state_id)
+    .ok_or(Redirect::to(ERROR_REDIRECT))?;
 
-            let user = if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
-              // update user token
-              if let Err(e) = state
-                .user_service
-                .update_github_access_token(
-                  user.id,
-                  access_token,
-                  OffsetDateTime::now_utc() + Duration::days(15),
-                )
-                .await
-              {
-                error!("error while trying to update github refresh token {:?}", e);
-                return Err(Redirect::to(ERROR_REDIRECT));
-              }
-              user
-            } else {
-              let refresh_token = match token.refresh_token() {
-                Some(unpacked_token) => unpacked_token.secret().clone(),
-                None => {
-                  error!("didn't get access token from github!");
-                  return Err(Redirect::to(ERROR_REDIRECT));
-                }
-              };
+  info!("Found csrf state.");
 
-              // create new user
-              match state
-                .user_service
-                .create_github_user(
-                  res.id,
-                  refresh_token,
-                  OffsetDateTime::now_utc() + Duration::minutes(14),
-                  access_token,
-                  OffsetDateTime::now_utc() + Duration::days(15),
-                )
-                .await
-              {
-                Ok(x) => x,
-                Err(e) => {
-                  error!("error while trying to create user {:?}", e);
-                  return Err(Redirect::to(ERROR_REDIRECT));
-                }
-              }
-            };
+  let code = AuthorizationCode::new(query.code.clone());
+  if &query.state != csrf_state.secret() {
+    return Err(Redirect::to(ERROR_REDIRECT));
+  }
 
-            let session_id = Uuid::new_v4();
-            let session_data = SessionData { user_id: user.id };
-            state
-              .sessions
-              .write()
-              .await
-              .insert(session_id, Arc::new(session_data));
+  info!("Token matched");
 
-            let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
-              .domain("api.science.tanneberger.me")
-              .same_site(SameSite::Lax)
-              .path("/auth")
-              .secure(true)
-              .http_only(true)
-              .max_age(Duration::days(1))
-              .finish();
+  let token = state
+    .oauth_github_client
+    .exchange_code(code)
+    .request_async(async_http_client)
+    .await
+    .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
 
-            info!("Succesfull authenticated: {}", user.id);
-            Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
-          }
-          Err(e) => Err(Redirect::to(ERROR_REDIRECT)),
-        }
-      } else {
-        Err(Redirect::to(ERROR_REDIRECT))
-      }
-    } else {
-      Err(Redirect::to(ERROR_REDIRECT))
-    };
+  info!("Did github roundtrip");
+
+  let access_token = token.access_token().secret().clone();
+
+  let client = reqwest::Client::new();
+
+  let res: GithubUserInfo = client
+    .get("https://api.github.com/user")
+    .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+    .header(
+      reqwest::header::AUTHORIZATION,
+      format!("Bearer {}", access_token.clone()),
+    )
+    .header("X-GitHub-Api-Version", "2022-11-28")
+    .header(reqwest::header::USER_AGENT, "doubleblind-science")
+    .send()
+    .await
+    .map_err(|_| Redirect::to(ERROR_REDIRECT))?
+    .json()
+    .await
+    .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+
+  info!("Fetched user info.");
+
+  let user = if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
+    // update user token
+    state
+      .user_service
+      .update_github_access_token(
+        user.id,
+        access_token,
+        OffsetDateTime::now_utc() + Duration::days(15),
+      )
+      .await
+      .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+
+    info!("Updated token");
+
+    user
   } else {
-    Err(Redirect::to(ERROR_REDIRECT))
+    let refresh_token = token
+      .refresh_token()
+      .ok_or(Redirect::to(ERROR_REDIRECT))?
+      .secret()
+      .to_string();
+
+    // create new user
+    let user = state
+      .user_service
+      .create_github_user(
+        res.id,
+        refresh_token,
+        OffsetDateTime::now_utc() + Duration::minutes(14),
+        access_token,
+        OffsetDateTime::now_utc() + Duration::days(15),
+      )
+      .await
+      .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+
+    info!("saved user");
+
+    user
   };
+
+  let session_id = Uuid::new_v4();
+  let session_data = SessionData { user_id: user.id };
+
+  info!("created session");
+  state
+    .sessions
+    .write()
+    .await
+    .insert(session_id, Arc::new(session_data));
+
+  info!("inserted session");
+
+  let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
+    .domain("api.science.tanneberger.me")
+    .same_site(SameSite::Lax)
+    .path("/auth")
+    .secure(true)
+    .http_only(true)
+    .max_age(Duration::days(1))
+    .finish();
+
+  info!("created cookie");
+
+  info!("Successful authenticated: {}", user.id);
+  Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
 
 pub(super) async fn auth_me(
