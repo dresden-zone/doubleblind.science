@@ -187,9 +187,7 @@ pub(super) async fn auth_login_github_callback(
             info!("Succesfull authenticated: {}", user.id);
             Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
           }
-          Err(e) => {
-            Err(Redirect::to(ERROR_REDIRECT))
-          }
+          Err(e) => Err(Redirect::to(ERROR_REDIRECT)),
         }
       } else {
         Err(Redirect::to(ERROR_REDIRECT))
