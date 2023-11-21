@@ -8,11 +8,10 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
-use tracing::{error, info};
+use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
-// Alternatively, this can be `oauth2::curl::http_client` or a custom client.
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
 use crate::structs::GithubUserInfo;
@@ -52,8 +51,8 @@ pub(super) async fn auth_login_github(
     .lock()
     .await
     .insert(csrf_state_id, csrf_state);
-  // Build the cookie
 
+  // Build the cookie
   let cookie = Cookie::build(CSRF_COOKIE, csrf_state_id.to_string())
     .domain("api.science.tanneberger.me")
     .same_site(SameSite::Lax)
@@ -63,7 +62,10 @@ pub(super) async fn auth_login_github(
     .max_age(Duration::minutes(30))
     .finish();
 
-  (jar.add(cookie), Redirect::to(&format!("{}&access_type=offline", authorize_url)))
+  (
+    jar.add(cookie),
+    Redirect::to(&format!("{}&access_type=offline", authorize_url)),
+  )
 }
 
 pub(super) async fn auth_login_github_callback(
@@ -74,14 +76,10 @@ pub(super) async fn auth_login_github_callback(
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
-  info!("Initiating authentication.");
-
   let csrf_cookie = jar.get(CSRF_COOKIE).ok_or(Redirect::to(ERROR_REDIRECT))?;
-  info!("Found cookie.");
 
   let csrf_state_id =
     Uuid::from_str(csrf_cookie.value()).map_err(|_| Redirect::to(ERROR_REDIRECT))?;
-  info!("Found csrf state id: {}", csrf_state_id);
 
   let csrf_state = state
     .csrf_state
@@ -90,14 +88,10 @@ pub(super) async fn auth_login_github_callback(
     .remove(&csrf_state_id)
     .ok_or(Redirect::to(ERROR_REDIRECT))?;
 
-  info!("Found csrf state.");
-
   let code = AuthorizationCode::new(query.code.clone());
   if &query.state != csrf_state.secret() {
     return Err(Redirect::to(ERROR_REDIRECT));
   }
-
-  info!("Token matched");
 
   let token = state
     .oauth_github_client
@@ -105,8 +99,6 @@ pub(super) async fn auth_login_github_callback(
     .request_async(async_http_client)
     .await
     .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
-
-  info!("Did github roundtrip");
 
   let access_token = token.access_token().secret().clone();
 
@@ -128,11 +120,7 @@ pub(super) async fn auth_login_github_callback(
     .await
     .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
 
-  info!("Fetched user info.");
-
   let user = if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await {
-    info!("yyy");
-
     // update user token
     state
       .user_service
@@ -147,12 +135,8 @@ pub(super) async fn auth_login_github_callback(
         Redirect::to(ERROR_REDIRECT)
       })?;
 
-    info!("Updated token");
-
     user
   } else {
-    info!("xxx: {:?}", token);
-
     let refresh_token = token
       .refresh_token()
       .ok_or(Redirect::to(ERROR_REDIRECT))?
@@ -160,7 +144,7 @@ pub(super) async fn auth_login_github_callback(
       .to_string();
 
     // create new user
-    let user = state
+    state
       .user_service
       .create_github_user(
         res.id,
@@ -173,24 +157,17 @@ pub(super) async fn auth_login_github_callback(
       .map_err(|err| {
         error!("Unable to create github user: {}", err);
         Redirect::to(ERROR_REDIRECT)
-      })?;
-
-    info!("saved user");
-
-    user
+      })?
   };
 
   let session_id = Uuid::new_v4();
   let session_data = SessionData { user_id: user.id };
 
-  info!("created session");
   state
     .sessions
     .write()
     .await
     .insert(session_id, Arc::new(session_data));
-
-  info!("inserted session");
 
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")
@@ -201,9 +178,6 @@ pub(super) async fn auth_login_github_callback(
     .max_age(Duration::days(1))
     .finish();
 
-  info!("created cookie");
-
-  info!("Successful authenticated: {}", user.id);
   Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
 
