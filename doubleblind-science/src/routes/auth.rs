@@ -16,8 +16,9 @@ use oauth2::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tracing::error;
+use tracing::log::LevelFilter::Off;
 use url::Url;
 use uuid::Uuid;
 
@@ -137,7 +138,11 @@ pub(crate) async fn auth_login_github_callback(
                             // update user token
                             if let Err(e) = state
                                 .user_service
-                                .update_github_token(user.id, refresh_token.clone())
+                                .update_github_access_token(
+                                    user.id,
+                                    access_token,
+                                    OffsetDateTime::now_utc() + Duration::days(15),
+                                )
                                 .await
                             {
                                 error!("error while trying to update github refresh token {:?}", e);
@@ -147,7 +152,13 @@ pub(crate) async fn auth_login_github_callback(
                             // create new user
                             if let Err(e) = state
                                 .user_service
-                                .create_github_user(refresh_token.clone(), res.id)
+                                .create_github_user(
+                                    res.id,
+                                    refresh_token,
+                                    OffsetDateTime::now_utc() + Duration::minutes(14),
+                                    access_token,
+                                    OffsetDateTime::now_utc() + Duration::days(15),
+                                )
                                 .await
                             {
                                 error!("error while trying to create user {:?}", e);

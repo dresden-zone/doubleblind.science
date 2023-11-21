@@ -38,8 +38,11 @@ impl UserService {
 
     pub(crate) async fn create_github_user(
         &mut self,
-        github_token: String,
         github_id: i64,
+        github_refresh_token: String,
+        github_refresh_token_expire: OffsetDateTime,
+        github_access_token: String,
+        github_access_token_expire: OffsetDateTime,
     ) -> anyhow::Result<users::Model> {
         let user_uuid = Uuid::new_v4();
 
@@ -49,10 +52,10 @@ impl UserService {
             trusted: Set(false),
             admin: Set(false),
             github_user_id: Set(Some(github_id)),
-            github_refresh_token: Set(Some(github_token)),
-            github_refresh_token_expire: Set(None),
-            github_access_token: Set(None),
-            github_access_token_expire: Set(None),
+            github_refresh_token: Set(Some(github_refresh_token)),
+            github_refresh_token_expire: Set(Some(github_refresh_token_expire)),
+            github_access_token: Set(Some(github_access_token)),
+            github_access_token_expire: Set(Some(github_access_token_expire)),
             last_update: Set(OffsetDateTime::now_utc()),
         }
         .insert(&*self.db)
@@ -83,9 +86,9 @@ impl UserService {
                 admin: Set(admin),
                 github_user_id: Set(user.github_user_id),
                 github_refresh_token: Unchanged(user.github_refresh_token),
-                github_refresh_token_expire: Set(None),
-                github_access_token: Set(None),
-                github_access_token_expire: Set(None),
+                github_refresh_token_expire: Set(user.github_access_token_expire),
+                github_access_token: Set(user.github_access_token),
+                github_access_token_expire: Set(user.github_access_token_expire),
                 last_update: Set(OffsetDateTime::now_utc()),
             }
             .update(&*self.db)
@@ -96,10 +99,11 @@ impl UserService {
         }
     }
 
-    pub(crate) async fn update_github_token(
+    pub(crate) async fn update_github_access_token(
         &mut self,
         user_id: Uuid,
-        token: String,
+        github_access_token: String,
+        github_access_token_expire: OffsetDateTime,
     ) -> anyhow::Result<bool> {
         let found_user = users::Entity::find_by_id(user_id).one(&*self.db).await?;
 
@@ -111,9 +115,9 @@ impl UserService {
                 admin: Unchanged(user.admin),
                 github_user_id: Unchanged(user.github_user_id),
                 github_refresh_token: Set(user.github_refresh_token),
-                github_refresh_token_expire: Set(None),
-                github_access_token: Set(None),
-                github_access_token_expire: Set(None),
+                github_refresh_token_expire: Set(user.github_refresh_token_expire),
+                github_access_token: Set(Some(github_access_token)),
+                github_access_token_expire: Set(Some(github_access_token_expire)),
                 last_update: Set(OffsetDateTime::now_utc()),
             }
             .update(&*self.db)
