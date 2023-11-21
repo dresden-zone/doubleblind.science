@@ -41,6 +41,7 @@ pub(crate) async fn auth_login_github(
         .oauth_github_client
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the user's public repos and email.
+        // TODO: add offline access scope
         .add_scope(Scope::new("public_repo".to_string()))
         .add_scope(Scope::new("user:email".to_string()))
         .add_scope(Scope::new("admin:repo_hook".to_string()))
@@ -95,13 +96,6 @@ pub(crate) async fn auth_login_github_callback(
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
                         let access_token = token.access_token().secret().clone();
-                        let refresh_token = match token.refresh_token() {
-                            Some(token) => token.secret().clone(),
-                            None => {
-                                error!("couldn't extract refresh token!");
-                                return Redirect::to(ERROR_REDIRECT);
-                            }
-                        };
 
                         let client = reqwest::Client::new();
 
@@ -149,6 +143,14 @@ pub(crate) async fn auth_login_github_callback(
                                 return Redirect::to(ERROR_REDIRECT);
                             }
                         } else {
+                            let refresh_token = match token.refresh_token() {
+                                Some(unpacked_token) => unpacked_token.secret().clone(),
+                                None => {
+                                    error!("didn't get access token from github!");
+                                    return Redirect::to(ERROR_REDIRECT);
+                                }
+                            };
+
                             // create new user
                             if let Err(e) = state
                                 .user_service
