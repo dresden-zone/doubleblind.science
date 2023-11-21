@@ -1,28 +1,28 @@
-use sqlx::postgres::PgPoolOptions;
-use sqlx::{Error, PgPool, Pool, Postgres};
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
+use oauth2::{
+    AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl,
+    TokenUrl,
+};
+use oauth2::basic::BasicClient;
+use sea_orm::{ConnectOptions, Database};
+use tokio::sync::{Mutex, RwLock};
+use uuid::Uuid;
+
+use migration::{Migrator, MigratorTrait};
+
+use crate::auth::SessionData;
 use crate::service::projects::ProjectService;
 use crate::service::user::UserService;
-use migration::{Migrator, MigratorTrait};
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
-use oauth2::{
-    AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
-    TokenResponse, TokenUrl,
-};
-use sea_orm::{ConnectOptions, Database};
-use tokio::sync::Mutex;
-use tracing_subscriber::fmt::format;
-use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
     pub oauth_github_client: BasicClient,
     pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
+    pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
     pub user_service: UserService,
     pub project_service: ProjectService,
 }
@@ -81,10 +81,10 @@ impl DoubleBlindState {
             auth_url,
             Some(token_url),
         )
-        .set_redirect_uri(
-            RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
-                .expect("Invalid redirect URL"),
-        );
+            .set_redirect_uri(
+                RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
+                    .expect("Invalid redirect URL"),
+            );
 
         DoubleBlindState {
             oauth_github_client: client,

@@ -15,6 +15,7 @@ mod routes;
 pub mod service;
 mod state;
 pub mod structs;
+mod auth;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
