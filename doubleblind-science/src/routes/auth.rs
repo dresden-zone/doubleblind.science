@@ -42,6 +42,7 @@ pub(super) async fn auth_login_github(
     .add_scope(Scope::new("repo".to_string()))
     .add_scope(Scope::new("user:email".to_string()))
     .add_scope(Scope::new("write:repo_hook".to_string()))
+    .add_scope(Scope::new("offline".to_string()))
     .url();
 
   let csrf_state_id = Uuid::new_v4();
