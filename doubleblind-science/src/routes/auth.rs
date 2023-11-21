@@ -42,9 +42,9 @@ pub(crate) async fn auth_login_github(
         .authorize_url(CsrfToken::new_random)
         // This example is requesting access to the user's public repos and email.
         // TODO: add offline access scope
-        .add_scope(Scope::new("public_repo".to_string()))
+        .add_scope(Scope::new("repo".to_string()))
         .add_scope(Scope::new("user:email".to_string()))
-        .add_scope(Scope::new("admin:repo_hook".to_string()))
+        .add_scope(Scope::new("write:repo_hook".to_string()))
         .url();
 
     let session_id = Uuid::new_v4();
