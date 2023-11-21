@@ -4,11 +4,13 @@ import {ProjectService} from "../../core/data/project.service";
 import {IconTrashComponent} from "../../core/icons/icon-trash/icon-trash.component";
 import {ButtonComponent} from "@feel/form";
 import {CardComponent} from "../../core/components/card/card.component";
+import {IconEyeComponent} from "../../core/icons/icon-eye/icon-eye.component";
+import {CdkDropList} from "@angular/cdk/drag-drop";
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent],
+  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent, IconEyeComponent ],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss'
 })
