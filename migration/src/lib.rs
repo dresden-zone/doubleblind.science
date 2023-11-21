@@ -1,16 +1,12 @@
 pub use sea_orm_migration::prelude::*;
 
 mod m20231010_000001_create_table;
-mod m20231121_000001_rename_users;
 
 pub struct Migrator;
 
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
   fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-    vec![
-      Box::new(m20231010_000001_create_table::Migration),
-      Box::new(m20231121_000001_rename_users::Migration),
-    ]
+    vec![Box::new(m20231010_000001_create_table::Migration)]
   }
 }

@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
     db.execute_unprepared(
       "
 
-      CREATE TABLE users (
+      CREATE TABLE user (
         id UUID PRIMARY KEY,
         platform INT NOT NULL,
         trusted BOOL NOT NULL,
@@ -28,7 +28,7 @@ impl MigrationTrait for Migration {
 
       CREATE TABLE project (
         id UUID PRIMARY KEY,
-        owner UUID NOT NULL REFERENCES users(id),
+        owner UUID NOT NULL REFERENCES user(id),
         domain TEXT NOT NULL,
         commit VARCHAR(40) NOT NULL,
         github_id BIGINT,
