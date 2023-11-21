@@ -5,7 +5,6 @@ import {IconTrashComponent} from "../../core/icons/icon-trash/icon-trash.compone
 import {ButtonComponent} from "@feel/form";
 import {CardComponent} from "../../core/components/card/card.component";
 import {IconEyeComponent} from "../../core/icons/icon-eye/icon-eye.component";
-import {CdkDropList} from "@angular/cdk/drag-drop";
 
 @Component({
   selector: 'app-projects',
