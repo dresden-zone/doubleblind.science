@@ -11,9 +11,9 @@ impl MigrationTrait for Migration {
     // TODO: CAA, SRV
 
     db.execute_unprepared(
-      "
+      r#"
 
-      CREATE TABLE user (
+      CREATE TABLE "user" (
         id UUID PRIMARY KEY,
         platform INT NOT NULL,
         trusted BOOL NOT NULL,
@@ -28,7 +28,7 @@ impl MigrationTrait for Migration {
 
       CREATE TABLE project (
         id UUID PRIMARY KEY,
-        owner UUID NOT NULL REFERENCES user(id),
+        owner UUID NOT NULL REFERENCES "user"(id),
         domain TEXT NOT NULL,
         commit VARCHAR(40) NOT NULL,
         github_id BIGINT,
@@ -36,7 +36,7 @@ impl MigrationTrait for Migration {
         last_update TIMESTAMPTZ NOT NULL,
         trusted BOOL NOT NULL
       );
-    ",
+    "#,
     )
     .await?;
 
@@ -47,15 +47,15 @@ impl MigrationTrait for Migration {
     manager
       .get_connection()
       .execute_unprepared(
-        "
+        r#"
         DROP TABLE github_users;
-        DROP TABLE users;
+        DROP TABLE "user";
         DROP TABLE record_aaaa;
         DROP TABLE record_cname;
         DROP TABLE record_mx;
         DROP TABLE record_ns;
         DROP TABLE record_txt;
-      ",
+      "#,
       )
       .await?;
 
