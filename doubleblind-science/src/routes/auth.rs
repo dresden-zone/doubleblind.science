@@ -150,7 +150,7 @@ pub(super) async fn auth_login_github_callback(
 
     user
   } else {
-    info!("xxx");
+    info!("xxx: {:?}", token);
 
     let refresh_token = token
       .refresh_token()
