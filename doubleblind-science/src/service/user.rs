@@ -9,7 +9,7 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use entity::users;
+use entity::user;
 
 #[derive(Clone)]
 pub(crate) struct UserService {
@@ -21,20 +21,20 @@ impl UserService {
     UserService { db }
   }
 
-  pub(crate) async fn all_users(&mut self, zone_id: Uuid) -> anyhow::Result<Vec<users::Model>> {
-    Ok(users::Entity::find().all(&*self.db).await?)
+  pub(crate) async fn all_users(&mut self) -> anyhow::Result<Vec<user::Model>> {
+    Ok(user::Entity::find().all(&*self.db).await?)
   }
-  pub(crate) async fn get_user(&mut self, user_id: Uuid) -> anyhow::Result<Option<users::Model>> {
-    Ok(users::Entity::find_by_id(user_id).one(&*self.db).await?)
+  pub(crate) async fn get_user(&mut self, user_id: Uuid) -> anyhow::Result<Option<user::Model>> {
+    Ok(user::Entity::find_by_id(user_id).one(&*self.db).await?)
   }
 
   pub(crate) async fn get_user_by_github(
     &mut self,
     github_id: i64,
-  ) -> anyhow::Result<Option<users::Model>> {
+  ) -> anyhow::Result<Option<user::Model>> {
     Ok(
-      users::Entity::find()
-        .filter(users::Column::GithubUserId.eq(github_id))
+      user::Entity::find()
+        .filter(user::Column::GithubUserId.eq(github_id))
         .one(&*self.db)
         .await?,
     )
@@ -47,11 +47,11 @@ impl UserService {
     github_refresh_token_expire: OffsetDateTime,
     github_access_token: String,
     github_access_token_expire: OffsetDateTime,
-  ) -> anyhow::Result<users::Model> {
+  ) -> anyhow::Result<user::Model> {
     let user_uuid = Uuid::new_v4();
 
     Ok(
-      users::ActiveModel {
+      user::ActiveModel {
         id: Set(user_uuid),
         platform: Set(1),
         trusted: Set(false),
@@ -70,7 +70,7 @@ impl UserService {
 
   pub(crate) async fn delete(&mut self, user_id: Uuid) -> anyhow::Result<bool> {
     Ok(
-      users::Entity::delete_by_id(user_id)
+      user::Entity::delete_by_id(user_id)
         .exec(&*self.db)
         .await?
         .rows_affected
@@ -84,10 +84,10 @@ impl UserService {
     trusted: bool,
     admin: bool,
   ) -> anyhow::Result<bool> {
-    let found_user = users::Entity::find_by_id(user_id).one(&*self.db).await?;
+    let found_user = user::Entity::find_by_id(user_id).one(&*self.db).await?;
 
     if let Some(user) = found_user {
-      users::ActiveModel {
+      user::ActiveModel {
         id: Unchanged(user_id),
         platform: Unchanged(user.platform),
         trusted: Set(trusted),
@@ -113,10 +113,10 @@ impl UserService {
     github_access_token: String,
     github_access_token_expire: OffsetDateTime,
   ) -> anyhow::Result<bool> {
-    let found_user = users::Entity::find_by_id(user_id).one(&*self.db).await?;
+    let found_user = user::Entity::find_by_id(user_id).one(&*self.db).await?;
 
     if let Some(user) = found_user {
-      users::ActiveModel {
+      user::ActiveModel {
         id: Unchanged(user_id),
         platform: Unchanged(user.platform),
         trusted: Unchanged(user.trusted),

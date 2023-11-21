@@ -3,4 +3,4 @@
 pub mod prelude;
 
 pub mod project;
-pub mod users;
+pub mod user;

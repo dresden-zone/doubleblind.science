@@ -18,20 +18,20 @@ use crate::state::DoubleBlindState;
 use crate::structs::GithubUserInfo;
 
 #[derive(Deserialize)]
-pub struct AuthCall {
+pub(super) struct AuthCall {
   code: String,
   state: String,
 }
 
 #[derive(Serialize)]
-pub struct ReturnUrl {
+pub(super) struct ReturnUrl {
   url: Url,
 }
 
 const CSRF_COOKIE: &str = "csrf_state_id";
 
-pub(crate) async fn auth_login_github(
-  State(mut state): State<DoubleBlindState>,
+pub(super) async fn auth_login_github(
+  State(state): State<DoubleBlindState>,
   jar: CookieJar,
 ) -> impl IntoResponse {
   let (authorize_url, csrf_state) = state
@@ -65,7 +65,7 @@ pub(crate) async fn auth_login_github(
   (jar.add(cookie), Redirect::to(authorize_url.as_ref()))
 }
 
-pub(crate) async fn auth_login_github_callback(
+pub(super) async fn auth_login_github_callback(
   State(mut state): State<DoubleBlindState>,
   Query(query): Query<AuthCall>,
   jar: CookieJar,
@@ -206,9 +206,9 @@ pub(crate) async fn auth_login_github_callback(
   };
 }
 
-pub(crate) async fn auth_me(
+pub(super) async fn auth_me(
   //State(mut state): State<DoubleBlindState>,
   Session(session): Session,
 ) -> String {
-  return session.user_id.to_string();
+  session.user_id.to_string()
 }

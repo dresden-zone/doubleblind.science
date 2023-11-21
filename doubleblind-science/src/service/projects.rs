@@ -7,7 +7,7 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use entity::{project, users};
+use entity::{project, user};
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {
@@ -19,14 +19,11 @@ impl ProjectService {
     ProjectService { db }
   }
 
-  pub(crate) async fn all_projects(
-    &mut self,
-    zone_id: Uuid,
-  ) -> anyhow::Result<Vec<project::Model>> {
+  pub(crate) async fn all_projects(&self, zone_id: Uuid) -> anyhow::Result<Vec<project::Model>> {
     Ok(project::Entity::find().all(&*self.db).await?)
   }
   pub(crate) async fn get_project(
-    &mut self,
+    &self,
     project_id: Uuid,
   ) -> anyhow::Result<Option<project::Model>> {
     Ok(
@@ -37,7 +34,7 @@ impl ProjectService {
   }
 
   pub(crate) async fn create_project(
-    &mut self,
+    &self,
     owner_uuid: Uuid,
     domain: String,
     commit: String,
@@ -45,7 +42,7 @@ impl ProjectService {
   ) -> anyhow::Result<Option<project::Model>> {
     let project_uuid = Uuid::new_v4();
 
-    if let Some(user) = users::Entity::find_by_id(owner_uuid).one(&*self.db).await? {
+    if let Some(user) = user::Entity::find_by_id(owner_uuid).one(&*self.db).await? {
       Ok(Some(
         project::ActiveModel {
           id: Set(project_uuid),
@@ -65,7 +62,7 @@ impl ProjectService {
     }
   }
 
-  pub(crate) async fn delete(&mut self, project_id: Uuid) -> anyhow::Result<bool> {
+  pub(crate) async fn delete(&self, project_id: Uuid) -> anyhow::Result<bool> {
     Ok(
       project::Entity::delete_by_id(project_id)
         .exec(&*self.db)
@@ -75,7 +72,7 @@ impl ProjectService {
     )
   }
 
-  pub(crate) async fn trust_project(&mut self, project_id: Uuid) -> anyhow::Result<bool> {
+  pub(crate) async fn trust_project(&self, project_id: Uuid) -> anyhow::Result<bool> {
     let found_project = project::Entity::find_by_id(project_id)
       .one(&*self.db)
       .await?;
@@ -98,23 +95,6 @@ impl ProjectService {
       Ok(false)
     }
   }
-  /*
-  pub(crate) async fn update_github_token(
-    &mut self,
-    user_id: Uuid,
-    token: String
-  ) -> anyhow::Result<bool>  {
-    let found_user = github_users::Entity::find_by_id(user_id).one(&*self.db).await?;
 
-    if let Some(user) = found_user {
-      github_users::ActiveModel {
-        id: Unchanged(user_id),
-        refresh_token: Set(token),
-        last_update: Set(OffsetDateTime::now_utc())
-      }.update(&*self.db).await?;
-      Ok(true)
-    } else {
-      Ok(false)
-    }
-  }*/
+  pub(crate) async fn get_available_projects(&self, user_id: Uuid) {}
 }
