@@ -14,6 +14,6 @@ import {IconTudComponent} from "../../core/icons/icon-tud/icon-tud.component";
 })
 export class LandingpageComponent {
   protected call() {
-    location.href='https://api.science.tanneberger.me/auth/github/login';
+    location.href='https://api.science.tanneberger.me/auth/login/github';
   }
 }

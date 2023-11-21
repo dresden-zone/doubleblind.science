@@ -94,23 +94,28 @@ pub(crate) async fn auth_login_github_callback(
                     Ok(token) => {
                         println!("token for scopes {:?}", token.scopes());
                         let refresh_token = token.access_token().secret().clone();
-                        println!("token {:?}", token);
+                        println!("token {:?}", refresh_token);
 
                         let client = reqwest::Client::new();
+
                         let res: GithubUserInfo = match client
-                            .get("https://api.github.com/me")
-                            .header("Accept", "application/vnd.github+json")
-                            .header("Authorization", refresh_token.clone())
+                            .get("https://api.github.com/user")
+                            .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+                            .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", refresh_token.clone()))
                             .header("X-GitHub-Api-Version", "2022-11-28")
+                            .header(reqwest::header::USER_AGENT, "doubleblind-science")
                             .send()
                             .await {
-                            Ok(value) => match value
-                                .json::<GithubUserInfo>()
-                                .await {
-                                Ok(parsed_json) => parsed_json,
-                                Err(e) => {
-                                    error!("cannot parse request body from github {:?}", e);
-                                    return Redirect::to(ERROR_REDIRECT);
+                            Ok(value) => {
+                                print!("{:?}", &value);
+                                match value
+                                    .json::<GithubUserInfo>()
+                                    .await {
+                                    Ok(parsed_json) => parsed_json,
+                                    Err(e) => {
+                                        error!("cannot parse request body from github {:?}", e);
+                                        return Redirect::to(ERROR_REDIRECT);
+                                    }
                                 }
                             }
                             Err(e) => {
