@@ -13,7 +13,7 @@ use url::Url;
 use uuid::Uuid;
 
 // Alternatively, this can be `oauth2::curl::http_client` or a custom client.
-use crate::auth::{SessionData, SESSION_COOKIE};
+use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
 use crate::structs::GithubUserInfo;
 
@@ -206,4 +206,11 @@ pub(crate) async fn auth_login_github_callback(
     } else {
         Err(Redirect::to(ERROR_REDIRECT))
     };
+}
+
+pub(crate) async fn auth_me(
+    //State(mut state): State<DoubleBlindState>,
+    Session(session): Session,
+) -> String {
+    return session.user_id.to_string();
 }

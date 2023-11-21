@@ -17,9 +17,7 @@ pub(crate) struct SessionData {
     pub(crate) user_id: Uuid,
 }
 
-pub(crate) struct Session {
-    data: Arc<SessionData>,
-}
+pub(crate) struct Session(pub Arc<SessionData>);
 
 #[async_trait]
 impl FromRequestParts<DoubleBlindState> for Session {
@@ -41,6 +39,6 @@ impl FromRequestParts<DoubleBlindState> for Session {
             .ok_or(StatusCode::UNAUTHORIZED)?
             .clone();
 
-        Ok(Self { data })
+        Ok(Self(data))
     }
 }
