@@ -102,6 +102,7 @@
               nix build ${self}#checks.${system}.test-sea-orm-cli-migration
               BUILD_DIR=$(nix build ${self}#checks.${system}.test-sea-orm-cli-migration --no-link --print-out-paths)
               rm -rf entity/src/models/*
+              mkdir -p entity/src/models
               cp -r $BUILD_DIR/out/* ./entity/src/models/
               chmod -R 644 ./entity/src/models/*
               ${pkgs.cargo}/bin/cargo fmt
