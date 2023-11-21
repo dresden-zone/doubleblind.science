@@ -1,21 +1,21 @@
-use crate::routes::route;
 use axum::http::header::CONTENT_TYPE;
 use axum::http::Method;
 use axum::Server;
 use clap::Parser;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{debug, error, info, Level};
+use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::args::DoubleBlindArgs;
+use crate::routes::route;
 use crate::state::DoubleBlindState;
 
 mod args;
+mod auth;
 mod routes;
 pub mod service;
 mod state;
 pub mod structs;
-mod auth;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

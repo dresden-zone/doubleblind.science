@@ -1,11 +1,13 @@
-use entity::{project, users};
+use std::sync::Arc;
+
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
-use sea_orm::{ActiveModelBehavior, Related, Set};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Select};
-use std::sync::Arc;
+use sea_orm::Set;
+use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use time::OffsetDateTime;
 use uuid::Uuid;
+
+use entity::{project, users};
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {

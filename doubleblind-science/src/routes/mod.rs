@@ -1,17 +1,11 @@
-mod auth;
-
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::Router;
-
-use std::collections::HashSet;
-use std::sync::Arc;
+use serde::{Deserialize, Deserializer};
 
 use crate::routes::auth::{auth_login_github, auth_login_github_callback};
 use crate::state::DoubleBlindState;
-use axum::extract::{Path, State};
-use axum::http::StatusCode;
-use axum::Json;
-use serde::{Deserialize, Deserializer};
+
+mod auth;
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
     Router::new()

@@ -3,11 +3,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use oauth2::{
-    AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl,
-    TokenUrl,
-};
 use oauth2::basic::BasicClient;
+use oauth2::{AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, TokenUrl};
 use sea_orm::{ConnectOptions, Database};
 use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
@@ -81,14 +78,15 @@ impl DoubleBlindState {
             auth_url,
             Some(token_url),
         )
-            .set_redirect_uri(
-                RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
-                    .expect("Invalid redirect URL"),
-            );
+        .set_redirect_uri(
+            RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
+                .expect("Invalid redirect URL"),
+        );
 
         DoubleBlindState {
             oauth_github_client: client,
             csrf_state: Default::default(),
+            sessions: Default::default(),
             user_service: UserService::from_db(db.clone()),
             project_service: ProjectService::from_db(db.clone()),
         }

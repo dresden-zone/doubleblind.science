@@ -1,26 +1,21 @@
-use oauth2::basic::BasicClient;
-use std::collections::HashMap;
-use std::os::linux::raw::stat;
+use std::str::FromStr;
+use std::sync::Arc;
 
-// Alternatively, this can be `oauth2::curl::http_client` or a custom client.
-use crate::state::DoubleBlindState;
-use crate::structs::{GithubUser, GithubUserInfo};
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
-use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope,
-    TokenResponse, TokenUrl,
-};
+use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use time::{Duration, OffsetDateTime};
 use tracing::error;
-use tracing::log::LevelFilter::Off;
 use url::Url;
 use uuid::Uuid;
+
+// Alternatively, this can be `oauth2::curl::http_client` or a custom client.
+use crate::auth::{SessionData, SESSION_COOKIE};
+use crate::state::DoubleBlindState;
+use crate::structs::GithubUserInfo;
 
 #[derive(Deserialize)]
 pub struct AuthCall {
@@ -32,6 +27,8 @@ pub struct AuthCall {
 pub struct ReturnUrl {
     url: Url,
 }
+
+const CSRF_COOKIE: &str = "csrf_state_id";
 
 pub(crate) async fn auth_login_github(
     State(mut state): State<DoubleBlindState>,
@@ -47,12 +44,16 @@ pub(crate) async fn auth_login_github(
         .add_scope(Scope::new("write:repo_hook".to_string()))
         .url();
 
-    let session_id = Uuid::new_v4();
+    let csrf_state_id = Uuid::new_v4();
 
-    state.csrf_state.lock().await.insert(session_id, csrf_state);
+    state
+        .csrf_state
+        .lock()
+        .await
+        .insert(csrf_state_id, csrf_state);
     // Build the cookie
 
-    let cookie = Cookie::build("session_id", session_id.to_string())
+    let cookie = Cookie::build(CSRF_COOKIE, csrf_state_id.to_string())
         .domain("api.science.tanneberger.me")
         .same_site(SameSite::Lax)
         .path("/auth")
@@ -68,25 +69,24 @@ pub(crate) async fn auth_login_github_callback(
     State(mut state): State<DoubleBlindState>,
     Query(query): Query<AuthCall>,
     jar: CookieJar,
-) -> impl IntoResponse {
+) -> Result<(CookieJar, Redirect), Redirect> {
     const ERROR_REDIRECT: &str = "https://science.tanneberger.me/";
     const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
     println!("request ....");
-    return if let Some(session_cookie) = jar.get("session_id") {
+    return if let Some(csrf_cookie) = jar.get(CSRF_COOKIE) {
         println!("found cookie ...");
-        let session_id = match Uuid::from_str(session_cookie.value()) {
+        let csrf_state_id = match Uuid::from_str(csrf_cookie.value()) {
             Ok(value) => value,
             Err(e) => {
                 println!("cannot parse session uuid from cookie {:?}", e);
-                return Redirect::to(ERROR_REDIRECT);
+                return Err(Redirect::to(ERROR_REDIRECT));
             }
         };
 
-        return if let Some(token) = state.csrf_state.lock().await.remove(&session_id) {
+        return if let Some(csrf_state) = state.csrf_state.lock().await.remove(&csrf_state_id) {
             let code = AuthorizationCode::new(query.code.clone());
-            if &query.state == token.secret() {
-                println!("{:?} {:?}", &query.code, &query.state);
+            if &query.state == csrf_state.secret() {
                 match state
                     .oauth_github_client
                     .exchange_code(code)
@@ -117,17 +117,18 @@ pub(crate) async fn auth_login_github_callback(
                                     Ok(parsed_json) => parsed_json,
                                     Err(e) => {
                                         error!("cannot parse request body from github {:?}", e);
-                                        return Redirect::to(ERROR_REDIRECT);
+                                        return Err(Redirect::to(ERROR_REDIRECT));
                                     }
                                 }
                             }
                             Err(e) => {
                                 error!("error while fetching user id from github {:?}", e);
-                                return Redirect::to(ERROR_REDIRECT);
+                                return Err(Redirect::to(ERROR_REDIRECT));
                             }
                         };
 
-                        if let Ok(Some(user)) = state.user_service.get_user_by_github(res.id).await
+                        let user = if let Ok(Some(user)) =
+                            state.user_service.get_user_by_github(res.id).await
                         {
                             // update user token
                             if let Err(e) = state
@@ -140,19 +141,20 @@ pub(crate) async fn auth_login_github_callback(
                                 .await
                             {
                                 error!("error while trying to update github refresh token {:?}", e);
-                                return Redirect::to(ERROR_REDIRECT);
+                                return Err(Redirect::to(ERROR_REDIRECT));
                             }
+                            user
                         } else {
                             let refresh_token = match token.refresh_token() {
                                 Some(unpacked_token) => unpacked_token.secret().clone(),
                                 None => {
                                     error!("didn't get access token from github!");
-                                    return Redirect::to(ERROR_REDIRECT);
+                                    return Err(Redirect::to(ERROR_REDIRECT));
                                 }
                             };
 
                             // create new user
-                            if let Err(e) = state
+                            match state
                                 .user_service
                                 .create_github_user(
                                     res.id,
@@ -163,25 +165,45 @@ pub(crate) async fn auth_login_github_callback(
                                 )
                                 .await
                             {
-                                error!("error while trying to create user {:?}", e);
-                                return Redirect::to(ERROR_REDIRECT);
+                                Ok(x) => x,
+                                Err(e) => {
+                                    error!("error while trying to create user {:?}", e);
+                                    return Err(Redirect::to(ERROR_REDIRECT));
+                                }
                             }
-                        }
+                        };
 
-                        Redirect::to(SUCCESS_REDIRECT)
+                        let session_id = Uuid::new_v4();
+                        let session_data = SessionData { user_id: user.id };
+                        state
+                            .sessions
+                            .write()
+                            .await
+                            .insert(session_id, Arc::new(session_data));
+
+                        let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
+                            .domain("api.science.tanneberger.me")
+                            .same_site(SameSite::Lax)
+                            .path("/auth")
+                            .secure(true)
+                            .http_only(true)
+                            .max_age(Duration::days(1))
+                            .finish();
+
+                        Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
                     }
                     Err(e) => {
                         println!("error when trying ot fetch github token {:?}", e);
-                        Redirect::to(ERROR_REDIRECT)
+                        Err(Redirect::to(ERROR_REDIRECT))
                     }
                 }
             } else {
-                Redirect::to(ERROR_REDIRECT)
+                Err(Redirect::to(ERROR_REDIRECT))
             }
         } else {
-            Redirect::to(ERROR_REDIRECT)
+            Err(Redirect::to(ERROR_REDIRECT))
         };
     } else {
-        Redirect::to(ERROR_REDIRECT)
+        Err(Redirect::to(ERROR_REDIRECT))
     };
 }
