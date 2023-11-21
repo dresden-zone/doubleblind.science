@@ -8,7 +8,7 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
-use tracing::error;
+use tracing::{error, info};
 use url::Url;
 use uuid::Uuid;
 
@@ -188,6 +188,7 @@ pub(super) async fn auth_login_github_callback(
               .max_age(Duration::days(1))
               .finish();
 
+            info!("Succesfull authenticated: {}", user.id);
             Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
           }
           Err(e) => {
