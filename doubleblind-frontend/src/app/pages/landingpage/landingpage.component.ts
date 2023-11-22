@@ -4,11 +4,13 @@ import {ButtonComponent} from "@feel/form";
 import {CardComponent} from "../../core/components/card/card.component";
 import {IconGithubComponent} from "../../core/icons/icon-github/icon-github.component";
 import {IconTudComponent} from "../../core/icons/icon-tud/icon-tud.component";
+import {IconDresdenZoneComponent} from "../../core/icons/icon-dd-zone/icon-dresden-zone.component";
+import {IconLasrComponent} from "../../core/icons/icon-lasr/icon-lasr.component";
 
 @Component({
   selector: 'app-landingpage',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, CardComponent, IconGithubComponent, IconTudComponent],
+  imports: [CommonModule, ButtonComponent, CardComponent, IconGithubComponent, IconTudComponent, IconDresdenZoneComponent, IconLasrComponent],
   templateUrl: './landingpage.component.html',
   styleUrl: './landingpage.component.scss'
 })

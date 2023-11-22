@@ -20,7 +20,9 @@ main {
 
 footer {
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -63,8 +65,19 @@ footer {
   filter: blur(10rem);
 }
 
-h2 {
-  font-size: 2rem;
-  color: #072449;
+.support {
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 1rem;
+  max-width: 50%;
 }
 
+.links {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  max-width: 50%;
+  gap: 1rem;
+}

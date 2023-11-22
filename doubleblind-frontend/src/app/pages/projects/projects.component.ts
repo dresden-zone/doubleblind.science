@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, Input} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {ProjectService} from "../../core/data/project.service";
 import {IconTrashComponent} from "../../core/icons/icon-trash/icon-trash.component";
@@ -6,24 +6,57 @@ import {ButtonComponent, TextFieldComponent, DropdownComponent} from "@feel/form
 import {CardComponent} from "../../core/components/card/card.component";
 import {IconEyeComponent} from "../../core/icons/icon-eye/icon-eye.component";
 import {RepositoryService} from "../../core/data/repository.service";
+import {FormControl, FormGroup, ReactiveFormsModule, Validators} from "@angular/forms";
+import {NotificationService} from "@feel/notification";
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent, IconEyeComponent, TextFieldComponent, TextFieldComponent, ButtonComponent, DropdownComponent],
+  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent, IconEyeComponent, TextFieldComponent, TextFieldComponent, ButtonComponent, DropdownComponent, ReactiveFormsModule],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss'
 })
 export class ProjectsComponent {
-  protected readonly projects = this.projectService.getProjects();
+  protected readonly projects = this.projectService.getUserProjects();
   protected readonly repositories= this.repositoryService.getRepositories();
   constructor(
     private readonly projectService:ProjectService,
-    private readonly repositoryService:RepositoryService
+    private readonly repositoryService:RepositoryService,
+    private readonly notificationService: NotificationService,
   ) {
   }
 
+  @Input()
+  public projectName: string | null = null;
+
+  @Input()
+  public projectRepo: number | null = null;
+
+  protected form = new FormGroup( {
+    name: new FormControl(null, [Validators.required, Validators.minLength(6)]),
+    repo: new FormControl(null, [Validators.required]),
+  })
+
   protected visit_website(subdomain: string) {
       location.href=`https://${subdomain}.science.tanneberger.me`;
+  }
+
+  protected validate_input_and_submit() {
+    if (!this.form.valid) {
+      return;
+    }
+
+    const value = this.form.value;
+
+    this.projectService.create(value.name!, value.repo!)
+      .subscribe({
+        next: () => {
+          this.notificationService.success(`Successfully Created Project`);
+        },
+        error: err => {
+          console.error(err);
+          this.notificationService.error(`Failed to Create Project`);
+        },
+      });
   }
 }
