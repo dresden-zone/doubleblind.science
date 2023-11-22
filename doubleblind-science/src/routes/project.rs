@@ -24,7 +24,7 @@ pub(super) async fn user_projects(
 pub(super) async fn project_name_available(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
-) -> bool {
-  false
+) -> String {
+  false.to_string()
 }
 
