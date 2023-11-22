@@ -7,9 +7,9 @@
       <h2>Publish Your Artifacts</h2>
       <div class="create-project">
         <feel-text-field label="Subdomain"></feel-text-field>
-        <feel-form-dropdown label="Repositories">
+        <feel-dropdown label="Repositories">
           <option *ngFor="let repository of (repositories | async)">{{repository.name}}</option>
-        </feel-form-dropdown>
+        </feel-dropdown>
       </div>
       <feel-button>Publish!</feel-button>
     </app-card>
