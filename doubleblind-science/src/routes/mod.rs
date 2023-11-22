@@ -1,5 +1,5 @@
 use crate::routes::auth::{auth_login_github, auth_login_github_callback, auth_me};
-use crate::routes::project::project_available;
+use crate::routes::project::{project_name_available};
 use crate::state::DoubleBlindState;
 use axum::routing::get;
 use axum::Router;
@@ -12,5 +12,5 @@ pub(crate) fn route() -> Router<DoubleBlindState> {
     .route("/auth/me", get(auth_me))
     .route("/auth/login/github", get(auth_login_github))
     .route("/auth/callback/github", get(auth_login_github_callback))
-    .route("/project/available", get(project_available))
+    .route("/project/available", get(project_name_available))
 }

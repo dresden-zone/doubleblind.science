@@ -5,9 +5,13 @@
     <a href="/"><h1 class="title">Doubleblind.Science</h1></a>
     <app-card>
       <h2>Publish Your Artifacts</h2>
-
-      <b>Subdomain</b><input>
-      <feel-button></feel-button>
+      <div class="create-project">
+        <feel-text-field label="Subdomain"></feel-text-field>
+        <feel-form-dropdown label="Repositories">
+          <option *ngFor="let repository of (repositories | async)">{{repository.name}}</option>
+        </feel-form-dropdown>
+      </div>
+      <feel-button>Publish!</feel-button>
     </app-card>
     <app-card>
       <h2>Your Sites</h2>
@@ -26,7 +30,7 @@
           <td>{{project.name}}</td>
           <td>{{project.repo}}</td>
           <td>{{project.last_update | date}}</td>
-          <td><feel-button><app-icon-eye></app-icon-eye></feel-button></td>
+          <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
           <td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>
         </tr>
         </tbody>

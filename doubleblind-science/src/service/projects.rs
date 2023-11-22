@@ -4,6 +4,9 @@ use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use sea_query::any;
+use sea_orm::ColumnTrait;
+use sea_orm::QueryFilter;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -96,5 +99,12 @@ impl ProjectService {
     }
   }
 
-  pub(crate) async fn get_available_projects(&self, user_id: Uuid) {}
+  pub(crate) async fn get_user_projects(&self, user_id: Uuid) -> anyhow::Result<Vec<project::Model>>{
+    Ok(
+      project::Entity::find()
+          .filter(project::Column::Owner.eq(user_id))
+          .all(&*self.db)
+          .await?
+    )
+  }
 }
