@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-icon-eye',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './icon-eye.component.html',
+  templateUrl: './icon-eye.component.svg',
   styleUrls: ['./icon-eye.component.scss']
 })
 export class IconEyeComponent {

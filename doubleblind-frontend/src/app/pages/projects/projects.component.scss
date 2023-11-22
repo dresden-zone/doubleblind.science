@@ -10,6 +10,10 @@
   -webkit-text-fill-color: transparent;
 }
 
+feel-button ::ng-deep button {
+  color: $f-color-inverted !important;
+}
+
 .container {
   max-width: 1200px;
   margin-left: auto;
@@ -75,4 +79,7 @@ table td {
   gap: 1rem;
 }
 
+a {
+  text-decoration: none;
+}
 

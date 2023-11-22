@@ -4,7 +4,9 @@
   display: flex;
 
   svg {
-    fill: $f-color;
+
+    fill: white;
+    //fill: $f-color;
     width: inherit;
     height: inherit;
   }

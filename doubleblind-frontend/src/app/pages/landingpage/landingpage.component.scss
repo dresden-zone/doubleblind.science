@@ -81,3 +81,12 @@ footer {
   max-width: 50%;
   gap: 1rem;
 }
+
+feel-button ::ng-deep button {
+  color: $f-color-inverted !important;
+}
+
+a {
+  text-decoration: none;
+}
+
