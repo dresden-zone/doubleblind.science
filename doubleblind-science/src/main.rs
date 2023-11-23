@@ -36,10 +36,7 @@ async fn main() -> anyhow::Result<()> {
     "..."
   ));
 
-  let cors = CorsLayer::new()
-    .allow_methods(Any)
-    .allow_credentials(true)
-    .allow_origin(Any);
+  let cors = CorsLayer::very_permissive();
 
   let state = DoubleBlindState::new(
     &args.database_username,
