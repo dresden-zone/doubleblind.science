@@ -173,7 +173,7 @@ impl UserService {
           .exchange_refresh_token(&RefreshToken::new(refresh_token))
           .request_async(async_http_client)
           .await
-          .map_err(|err| error!("while trying to perform token exchange {:?}", e))
+          .map_err(|err| error!("while trying to perform token exchange {:?}", err))
           .ok()?;
 
         let access_token = value.access_token().secret();
@@ -192,7 +192,7 @@ impl UserService {
           return None;
         }
 
-        return Some(access_token.clone());
+        Some(access_token.clone())
       } else {
         None
       }
