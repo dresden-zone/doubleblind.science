@@ -15,8 +15,10 @@ export class ProjectService {
 
 
   public getUserProjects() : Observable<Project[]> {
-    //return this.http.get<Project[]>(`https://api.${API_URL}/project`);
-    return of([
+    return this.http.get<Project[]>(`https://api.${API_URL}/project`, {
+      withCredentials: true
+    })
+    /*return of([
       {
         id: "UUID-1",
         repo: "https://github.com/tanneberger/test-1",
@@ -38,7 +40,7 @@ export class ProjectService {
         name: "FooBar",
         last_update: "2013-12-24T18:21Z "
       }
-    ])
+    ])*/
   }
   public getFeaturedProjects() : Observable<Project[]> {
     //return this.http.get<Project[]>(`https://api.${API_URL}/project`);

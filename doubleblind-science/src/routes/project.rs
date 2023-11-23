@@ -1,12 +1,10 @@
 use axum::debug_handler;
-use axum::extract::State;
+use axum::extract::{Json, State};
 use axum::http::StatusCode;
-use axum::Json;
-use entity::project;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use tracing::error;
-use tracing::info;
+use tracing::{error, info};
+use entity::project;
 
 use crate::auth::Session;
 use crate::state::DoubleBlindState;
