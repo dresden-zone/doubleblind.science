@@ -1,21 +1,19 @@
-use axum::debug_handler;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use axum::extract::{Json, Query, State};
-use axum::http::StatusCode;
+use axum::debug_handler;
+use axum::extract::{Query, State};
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
-use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
-use oauth2::{AuthorizationCode, CsrfToken, RefreshToken, Scope, TokenResponse};
+use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
-use crate::auth::{Session, SessionData, SESSION_COOKIE};
+use crate::auth::{SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
 use crate::structs::GithubUserInfo;
 

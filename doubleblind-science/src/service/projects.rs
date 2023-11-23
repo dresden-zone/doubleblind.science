@@ -6,7 +6,7 @@ use sea_orm::ColumnTrait;
 use sea_orm::QueryFilter;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-use sea_query::{any, Condition};
+use sea_query::Condition;
 use time::OffsetDateTime;
 use uuid::Uuid;
 

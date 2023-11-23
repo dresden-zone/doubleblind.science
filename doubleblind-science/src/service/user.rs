@@ -1,9 +1,9 @@
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
-use oauth2::RefreshToken;
 use std::sync::Arc;
 use std::time::Duration;
 
+use oauth2::basic::BasicClient;
+use oauth2::reqwest::async_http_client;
+use oauth2::RefreshToken;
 use oauth2::TokenResponse;
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
@@ -15,7 +15,6 @@ use time::OffsetDateTime;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::state::DoubleBlindState;
 use entity::user;
 
 #[derive(Clone)]
@@ -160,45 +159,40 @@ impl UserService {
         user_info.github_refresh_token,
         user_info.github_refresh_token_expire,
       ) {
-        if OffsetDateTime::now_utc() > access_token_expr {
-          // we need a new access token
-          if OffsetDateTime::now_utc() > refresh_token_expr {
-            return None;
-          }
-
-          return match oauth_client
-            .exchange_refresh_token(&RefreshToken::new(refresh_token))
-            .request_async(async_http_client)
-            .await
-          {
-            Ok(value) => {
-              let access_token = value.access_token().secret();
-
-              let expire_access_token = value.expires_in().unwrap_or(Duration::from_secs(60 * 10));
-
-              if let Err(e) = self
-                .update_github_access_token(
-                  user_id,
-                  access_token,
-                  OffsetDateTime::now_utc() + expire_access_token,
-                )
-                .await
-              {
-                error!("while trying to update access tokesn {:?}", e);
-                return None;
-              }
-
-              Some(access_token.clone())
-            }
-            Err(e) => {
-              error!("while trying to perform token exchange {:?}", e);
-              None
-            }
-          };
-        } else {
+        if OffsetDateTime::now_utc() <= access_token_expr {
           // token still valid
-          Some(access_token)
+          return Some(access_token);
         }
+
+        // we need a new access token
+        if OffsetDateTime::now_utc() > refresh_token_expr {
+          return None;
+        }
+
+        let value = oauth_client
+          .exchange_refresh_token(&RefreshToken::new(refresh_token))
+          .request_async(async_http_client)
+          .await
+          .map_err(|err| error!("while trying to perform token exchange {:?}", e))
+          .ok()?;
+
+        let access_token = value.access_token().secret();
+
+        let expire_access_token = value.expires_in().unwrap_or(Duration::from_secs(60 * 10));
+
+        if let Err(e) = self
+          .update_github_access_token(
+            user_id,
+            access_token,
+            OffsetDateTime::now_utc() + expire_access_token,
+          )
+          .await
+        {
+          error!("while trying to update access token {:?}", e);
+          return None;
+        }
+
+        return Some(access_token.clone());
       } else {
         None
       }
