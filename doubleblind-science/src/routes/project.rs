@@ -1,4 +1,3 @@
-use axum::debug_handler;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
 use entity::project;
@@ -57,8 +56,8 @@ pub(super) async fn user_repos(
   if let (
     Some(mut access_token),
     Some(access_token_expr),
-    Some(refresh_token),
-    Some(refresh_token_expr),
+    Some(_refresh_token),
+    Some(_refresh_token_expr),
   ) = (
     user_info.github_access_token,
     user_info.github_access_token_expire,
@@ -116,7 +115,7 @@ pub(super) async fn create_project(
     .get_project_by_name_or_repo(&data.name, data.repo)
     .await
   {
-    Ok(Some(found_project)) => {
+    Ok(Some(_found_project)) => {
       info!("project already exists name or repo");
       return Err(StatusCode::BAD_REQUEST);
     }

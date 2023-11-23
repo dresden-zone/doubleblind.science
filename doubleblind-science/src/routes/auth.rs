@@ -1,4 +1,3 @@
-use axum::debug_handler;
 use axum::extract::{Json, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
@@ -189,7 +188,7 @@ pub(super) async fn auth_login_github_callback(
 }
 
 pub(super) async fn auth_me(
-  State(mut state): State<DoubleBlindState>,
+  State(state): State<DoubleBlindState>,
   Session(session): Session,
 ) -> Result<Json<UserInformation>, StatusCode> {
   match state.user_service.get_user(session.user_id).await {

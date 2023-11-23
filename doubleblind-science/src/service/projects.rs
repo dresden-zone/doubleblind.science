@@ -22,7 +22,7 @@ impl ProjectService {
     ProjectService { db }
   }
 
-  pub(crate) async fn all_projects(&self, zone_id: Uuid) -> anyhow::Result<Vec<project::Model>> {
+  pub(crate) async fn all_projects(&self, _zone_id: Uuid) -> anyhow::Result<Vec<project::Model>> {
     Ok(project::Entity::find().all(&*self.db).await?)
   }
   pub(crate) async fn get_project(
