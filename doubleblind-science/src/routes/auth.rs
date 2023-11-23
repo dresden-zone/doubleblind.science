@@ -178,7 +178,7 @@ pub(super) async fn auth_login_github_callback(
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")
     .same_site(SameSite::Lax)
-    .path("/auth")
+    .path("/")
     .secure(true)
     .http_only(true)
     .max_age(Duration::days(1))
