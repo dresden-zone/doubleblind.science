@@ -113,7 +113,7 @@ impl ProjectService {
 
   pub(crate) async fn get_project_by_name_or_repo(
     &self,
-    name: String,
+    name: &str,
     repo: i64,
   ) -> anyhow::Result<Option<project::Model>> {
     Ok(

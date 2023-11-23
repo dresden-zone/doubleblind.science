@@ -109,23 +109,23 @@ pub(super) async fn create_project(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
   Json(data): Json<CreateProjectRequest>,
-) -> StatusCode {
+) -> Result<Json<Option<project::Model>>, StatusCode> {
   if data.name.len() <= 6 {
-    return StatusCode::BAD_REQUEST;
+    return Err(StatusCode::BAD_REQUEST);
   }
 
   match state
     .project_service
-    .get_project_by_name_or_repo(data.name, data.repo)
+    .get_project_by_name_or_repo(&data.name, data.repo)
     .await
   {
     Ok(Some(found_project)) => {
       info!("project already exists");
-      return StatusCode::BAD_REQUEST;
+      return Err(StatusCode::BAD_REQUEST);
     }
     Err(e) => {
       error!("error while searching for projects {:?}", e);
-      return StatusCode::INTERNAL_SERVER_ERROR;
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
     _ => {}
   }
@@ -134,14 +134,29 @@ pub(super) async fn create_project(
     Ok(Some(user)) => user,
     Err(e) => {
       error!("while trying to fetch user {:?}", e);
-      return StatusCode::INTERNAL_SERVER_ERROR;
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
     _ => {
-      return StatusCode::INTERNAL_SERVER_ERROR;
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
 
   //let get_repo_info = reqwest::
+  // - inserten
 
-  StatusCode::OK
+  Ok(Json(
+    state
+      .project_service
+      .create_project(
+        user_info.id,
+        data.name.to_string(),
+        "".to_string(),
+        data.repo,
+      )
+      .await
+      .map_err(|err| {
+        error!("Error while inserting project: {:?}", err);
+        StatusCode::INTERNAL_SERVER_ERROR
+      })?,
+  ))
 }
