@@ -37,8 +37,8 @@ async fn main() -> anyhow::Result<()> {
   ));
 
   let cors = CorsLayer::new()
-    .allow_methods([Method::GET, Method::POST])
-    .allow_headers([CONTENT_TYPE])
+    .allow_methods(Any)
+    .allow_headers(Any)
     .allow_origin(Any);
 
   let state = DoubleBlindState::new(
