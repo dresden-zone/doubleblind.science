@@ -1,4 +1,8 @@
 use std::sync::Arc;
+use std::time::Duration;
+use oauth2::basic::BasicClient;
+use oauth2::RefreshToken;
+use oauth2::reqwest::async_http_client;
 
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
@@ -7,9 +11,12 @@ use sea_orm::QueryFilter;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use time::OffsetDateTime;
+use tracing::error;
+use oauth2::TokenResponse;
 use uuid::Uuid;
 
 use entity::user;
+use crate::state::DoubleBlindState;
 
 #[derive(Clone)]
 pub(crate) struct UserService {
@@ -24,7 +31,7 @@ impl UserService {
   pub(crate) async fn all_users(&mut self) -> anyhow::Result<Vec<user::Model>> {
     Ok(user::Entity::find().all(&*self.db).await?)
   }
-  pub(crate) async fn get_user(&mut self, user_id: Uuid) -> anyhow::Result<Option<user::Model>> {
+  pub(crate) async fn get_user(&self, user_id: Uuid) -> anyhow::Result<Option<user::Model>> {
     Ok(user::Entity::find_by_id(user_id).one(&*self.db).await?)
   }
 
@@ -110,7 +117,7 @@ impl UserService {
   pub(crate) async fn update_github_access_token(
     &mut self,
     user_id: Uuid,
-    github_access_token: String,
+    github_access_token: &String,
     github_access_token_expire: OffsetDateTime,
   ) -> anyhow::Result<bool> {
     let found_user = user::Entity::find_by_id(user_id).one(&*self.db).await?;
@@ -124,7 +131,7 @@ impl UserService {
         github_user_id: Unchanged(user.github_user_id),
         github_refresh_token: Set(user.github_refresh_token),
         github_refresh_token_expire: Set(user.github_refresh_token_expire),
-        github_access_token: Set(Some(github_access_token)),
+        github_access_token: Set(Some(github_access_token.clone())),
         github_access_token_expire: Set(Some(github_access_token_expire)),
         last_update: Set(OffsetDateTime::now_utc()),
       }
@@ -133,6 +140,49 @@ impl UserService {
       Ok(true)
     } else {
       Ok(false)
+    }
+  }
+
+
+  pub async fn fresh_access_token(
+    &mut self,
+    oauth_client: &mut BasicClient,
+    user_id: Uuid
+  ) -> Option<String> {
+    if let Ok(Some(user_info)) = self.get_user(user_id).await {
+      if let (Some(access_token), Some(access_token_expr), Some(refresh_token), Some(refresh_token_expr)) = (user_info.github_access_token, user_info.github_access_token_expire, user_info.github_refresh_token, user_info.github_refresh_token_expire) {
+        if OffsetDateTime::now_utc() > access_token_expr { // we need a new access token
+          if OffsetDateTime::now_utc() > refresh_token_expr {
+            return None;
+          }
+
+          return match oauth_client.exchange_refresh_token(&RefreshToken::new(refresh_token))
+              .request_async(async_http_client).await {
+            Ok(value) => {
+              let access_token = value.access_token().secret();
+
+              let expire_access_token = value.expires_in().unwrap_or(Duration::from_secs(60 * 10));
+
+              if let Err(e) = self.update_github_access_token(user_id, access_token, OffsetDateTime::now_utc() + expire_access_token).await {
+                error!("while trying to update access tokesn {:?}", e);
+                return None;
+              }
+
+              Some(access_token.clone())
+            }
+            Err(e) => {
+              error!("while trying to perform token exchange {:?}", e);
+              None
+            }
+          }
+        } else { // token still valid
+          Some(access_token)
+        }
+      } else {
+        None
+      }
+    } else {
+      None
     }
   }
 }

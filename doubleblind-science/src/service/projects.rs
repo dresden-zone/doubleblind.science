@@ -4,7 +4,7 @@ use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-use sea_query::any;
+use sea_query::{any, Condition};
 use sea_orm::ColumnTrait;
 use sea_orm::QueryFilter;
 use time::OffsetDateTime;
@@ -104,6 +104,19 @@ impl ProjectService {
       project::Entity::find()
           .filter(project::Column::Owner.eq(user_id))
           .all(&*self.db)
+          .await?
+    )
+  }
+
+  pub(crate) async fn get_project_by_name_or_repo(&self, name: String, repo: i64) -> anyhow::Result<Option<project::Model>>{
+    Ok(
+      project::Entity::find()
+          .filter(
+            Condition::any()
+                .add(project::Column::Domain.eq(name))
+                .add(project::Column::GithubId.eq(repo))
+            )
+          .one(&*self.db)
           .await?
     )
   }

@@ -1,11 +1,14 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use axum::debug_handler;
 
-use axum::extract::{Query, State};
+use axum::extract::{Query, State, Json};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
-use oauth2::{AuthorizationCode, CsrfToken, Scope, TokenResponse};
+use oauth2::{AuthorizationCode, CsrfToken, RefreshToken, Scope, TokenResponse};
+use oauth2::basic::BasicTokenResponse;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tracing::error;
@@ -26,6 +29,13 @@ pub(super) struct AuthCall {
 pub(super) struct ReturnUrl {
   url: Url,
 }
+
+#[derive(Serialize)]
+pub(super) struct UserInformation {
+  id: Uuid,
+  github_id: i64
+}
+
 
 const CSRF_COOKIE: &str = "csrf_state_id";
 
@@ -126,7 +136,7 @@ pub(super) async fn auth_login_github_callback(
       .user_service
       .update_github_access_token(
         user.id,
-        access_token,
+        &access_token,
         OffsetDateTime::now_utc() + Duration::days(15),
       )
       .await
@@ -181,9 +191,28 @@ pub(super) async fn auth_login_github_callback(
   Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
 
+#[debug_handler]
 pub(super) async fn auth_me(
-  //State(mut state): State<DoubleBlindState>,
+  State(mut state): State<DoubleBlindState>,
   Session(session): Session,
-) -> String {
-  session.user_id.to_string()
+) -> Result<Json<UserInformation>, StatusCode>{
+  return match state.user_service.get_user(session.user_id).await {
+    Ok(Some(user_data)) => {
+      if let Some(github_id) = user_data.github_user_id {
+        Ok(Json(UserInformation{
+          id: session.user_id,
+          github_id
+        }))
+      } else {
+        Err(StatusCode::INTERNAL_SERVER_ERROR)
+      }
+    }
+    Err(e) => {
+      error!("while searching for user in database {:?}", e);
+      Err(StatusCode::INTERNAL_SERVER_ERROR)
+    }
+    _ => {
+      Err(StatusCode::NOT_FOUND)
+    }
+  }
 }
