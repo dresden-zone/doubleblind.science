@@ -15,7 +15,7 @@ export class ProjectService {
 
 
   public getUserProjects() : Observable<Project[]> {
-    return this.http.get<Project[]>(`https://api.${API_URL}/project`, {
+    return this.http.get<Project[]>(`https://api.${API_URL}/project/`,{
       withCredentials: true
     })
     /*return of([

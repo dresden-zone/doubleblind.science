@@ -1,3 +1,4 @@
+use axum::debug_handler;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
 use entity::project;
@@ -21,11 +22,12 @@ pub(super) struct RepoInformation {
   full_name: String,
 }
 
+#[debug_handler]
 pub(super) async fn user_projects(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
-) -> Vec<project::Model> {
-  match state
+) -> Json<Vec<project::Model>> {
+  Json(match state
     .project_service
     .get_user_projects(session.user_id)
     .await
@@ -35,7 +37,7 @@ pub(super) async fn user_projects(
       error!("error while querying projects {:?}", e);
       Vec::new()
     }
-  }
+  })
 }
 
 pub(super) async fn user_repos(
