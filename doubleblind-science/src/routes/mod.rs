@@ -1,5 +1,5 @@
 use crate::routes::auth::{auth_login_github, auth_login_github_callback, auth_me};
-use crate::routes::project::{create_project};
+use crate::routes::project::create_project;
 use crate::state::DoubleBlindState;
 use axum::routing::get;
 use axum::Router;

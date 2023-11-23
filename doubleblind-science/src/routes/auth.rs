@@ -1,14 +1,14 @@
+use axum::debug_handler;
 use std::str::FromStr;
 use std::sync::Arc;
-use axum::debug_handler;
 
-use axum::extract::{Query, State, Json};
+use axum::extract::{Json, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use oauth2::basic::BasicTokenResponse;
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, CsrfToken, RefreshToken, Scope, TokenResponse};
-use oauth2::basic::BasicTokenResponse;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 use tracing::error;
@@ -33,9 +33,8 @@ pub(super) struct ReturnUrl {
 #[derive(Serialize)]
 pub(super) struct UserInformation {
   id: Uuid,
-  github_id: i64
+  github_id: i64,
 }
-
 
 const CSRF_COOKIE: &str = "csrf_state_id";
 
@@ -195,13 +194,13 @@ pub(super) async fn auth_login_github_callback(
 pub(super) async fn auth_me(
   State(mut state): State<DoubleBlindState>,
   Session(session): Session,
-) -> Result<Json<UserInformation>, StatusCode>{
-  return match state.user_service.get_user(session.user_id).await {
+) -> Result<Json<UserInformation>, StatusCode> {
+  match state.user_service.get_user(session.user_id).await {
     Ok(Some(user_data)) => {
       if let Some(github_id) = user_data.github_user_id {
-        Ok(Json(UserInformation{
+        Ok(Json(UserInformation {
           id: session.user_id,
-          github_id
+          github_id,
         }))
       } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -211,8 +210,6 @@ pub(super) async fn auth_me(
       error!("while searching for user in database {:?}", e);
       Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
-    _ => {
-      Err(StatusCode::NOT_FOUND)
-    }
+    _ => Err(StatusCode::NOT_FOUND),
   }
 }
