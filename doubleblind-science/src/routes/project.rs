@@ -1,10 +1,10 @@
 use axum::debug_handler;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
+use entity::project;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tracing::{error, info};
-use entity::project;
 
 use crate::auth::Session;
 use crate::state::DoubleBlindState;
@@ -42,7 +42,7 @@ pub(super) async fn user_projects(
 pub(super) async fn user_repos(
   Session(session): Session,
   State(mut state): State<DoubleBlindState>,
-) -> Result<Vec<RepoInformation>, StatusCode> {
+) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
   let user_info = match state.user_service.get_user(session.user_id).await {
     Ok(Some(user)) => user,
     Err(e) => {
@@ -80,29 +80,28 @@ pub(super) async fn user_repos(
       };
     }
 
-    let res: Vec<RepoInformation> = reqwest::Client::new()
-      .get("https://api.github.com/user/repos")
-      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .header(
-        reqwest::header::AUTHORIZATION,
-        format!("Bearer {}", access_token.clone()),
-      )
-      .header("X-GitHub-Api-Version", "2022-11-28")
-      .header(reqwest::header::USER_AGENT, "doubleblind-science")
-      .send()
-      .await
-      .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-      .json()
-      .await
-      .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Ok(res)
+    Ok(Json(
+      reqwest::Client::new()
+        .get("https://api.github.com/user/repos")
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .header(
+          reqwest::header::AUTHORIZATION,
+          format!("Bearer {}", access_token.clone()),
+        )
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header(reqwest::header::USER_AGENT, "doubleblind-science")
+        .send()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .json()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    ))
   } else {
     Err(StatusCode::INTERNAL_SERVER_ERROR)
   }
 }
 
-#[debug_handler]
 pub(super) async fn create_project(
   Session(session): Session,
   State(state): State<DoubleBlindState>,

@@ -1,5 +1,6 @@
 use axum::debug_handler;
 use axum::extract::{Json, Query, State};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use oauth2::reqwest::async_http_client;
@@ -187,7 +188,6 @@ pub(super) async fn auth_login_github_callback(
   Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
 
-#[debug_handler]
 pub(super) async fn auth_me(
   State(mut state): State<DoubleBlindState>,
   Session(session): Session,
