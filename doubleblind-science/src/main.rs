@@ -2,7 +2,7 @@ use axum::http::header::CONTENT_TYPE;
 use axum::http::Method;
 use axum::Server;
 use clap::Parser;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowCredentials, Any, CorsLayer};
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -39,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
   let cors = CorsLayer::new()
     .allow_methods(Any)
     .allow_headers(Any)
+    .allow_credentials(AllowCredentials::yes())
     .allow_origin(Any);
 
   let state = DoubleBlindState::new(
