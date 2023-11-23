@@ -118,7 +118,7 @@ pub(super) async fn create_project(
     .await
   {
     Ok(Some(found_project)) => {
-      info!("project already exists");
+      info!("project already exists name or repo");
       return Err(StatusCode::BAD_REQUEST);
     }
     Err(e) => {
