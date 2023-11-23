@@ -91,6 +91,7 @@ pub(super) async fn user_repos(
         )
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header(reqwest::header::USER_AGENT, "doubleblind-science")
+        .query(&vec![("per_page", 9999)]) //TODO: problem
         .send()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
