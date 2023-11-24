@@ -24,7 +24,11 @@ export class RepositoryService {
       withCredentials: true,
       params: http_params
     }).pipe(switchMap(value => {
-      return this.getRepoRec(current_page + 1).pipe(map(value_2 => [...value,...value_2]));
+      if (value.length == 0) {
+        return of([])
+      } else {
+        return this.getRepoRec(current_page + 1).pipe(map(value_2 => [...value,...value_2]));
+      }
     }))
   }
 
