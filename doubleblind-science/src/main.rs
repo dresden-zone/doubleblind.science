@@ -1,6 +1,6 @@
 use axum::Server;
 use clap::Parser;
-use tower_http::cors::{AllowCredentials, Any, CorsLayer};
+use tower_http::cors::{CorsLayer};
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -43,6 +43,8 @@ async fn main() -> anyhow::Result<()> {
     &args.database_name,
     &args.github_client_id,
     &args.github_client_secret_file,
+    &args.website_path,
+    &args.website_domain,
   )
   .await;
 

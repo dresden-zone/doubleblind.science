@@ -12,6 +12,7 @@ use uuid::Uuid;
 use migration::{Migrator, MigratorTrait};
 
 use crate::auth::SessionData;
+use crate::service::deployment::DeploymentService;
 use crate::service::projects::ProjectService;
 use crate::service::user::UserService;
 
@@ -22,6 +23,7 @@ pub(crate) struct DoubleBlindState {
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
   pub user_service: UserService,
   pub project_service: ProjectService,
+  pub deployment_service: DeploymentService,
 }
 
 impl DoubleBlindState {
@@ -32,6 +34,8 @@ impl DoubleBlindState {
     database: &str,
     github_client_id: &str,
     github_client_secret_path: &Path,
+    website_path: &Path,
+    website_domain: &str,
   ) -> DoubleBlindState {
     // reading secrets from files
     let database_password = std::fs::read_to_string(password_file)
@@ -89,6 +93,10 @@ impl DoubleBlindState {
       sessions: Default::default(),
       user_service: UserService::from_db(db.clone()),
       project_service: ProjectService::from_db(db.clone()),
+      deployment_service: DeploymentService::new(
+        website_path.to_path_buf(),
+        website_domain.to_string(),
+      ),
     }
   }
 }

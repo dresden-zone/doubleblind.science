@@ -8,6 +8,7 @@ use tokio_tar::Archive;
 use tokio_util::io::StreamReader;
 use tracing::info;
 
+#[derive(Clone)]
 pub(crate) struct DeploymentService {
   client: Client,
   webroot: PathBuf,
@@ -25,8 +26,7 @@ impl DeploymentService {
 
   pub(crate) async fn deploy(
     &self,
-    owner: &str,
-    repo: &str,
+    full_name: &str,
     token: &str,
     commit_id: &str,
     domain: &str,
@@ -39,11 +39,11 @@ impl DeploymentService {
     }
 
     info!(
-      "Deploying {owner}/{repo}#{commit_id} into {}",
+      "Deploying {full_name}#{commit_id} into {}",
       dist.to_str().unwrap_or("~invalid~")
     );
 
-    let url = format!("https://github.com/{owner}/{repo}/tarball/{commit_id}");
+    let url = format!("https://github.com/{full_name}/tarball/{commit_id}");
 
     let stream = self
       .client
@@ -88,7 +88,7 @@ mod tests {
     let service = DeploymentService::new(PathBuf::from("."), "m4rc3l.de".to_string());
 
     service
-      .deploy("MarcelCoding", "zia", "abc", "main", "zia")
+      .deploy("MarcelCoding/zia",  "abc", "main", "zia")
       .await
   }
 }

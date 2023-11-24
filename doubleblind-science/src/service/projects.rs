@@ -111,6 +111,18 @@ impl ProjectService {
     )
   }
 
+  pub(crate) async fn get_projects_by_github_id(
+    &self,
+    github_id: i64,
+  ) -> anyhow::Result<Option<project::Model>> {
+    Ok(
+      project::Entity::find()
+        .filter(project::Column::GithubId.eq(github_id))
+        .one(&*self.db)
+        .await?,
+    )
+  }
+
   pub(crate) async fn get_project_by_name_or_repo(
     &self,
     name: &str,
