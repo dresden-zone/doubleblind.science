@@ -27,17 +27,19 @@ pub(super) async fn user_projects(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
 ) -> Json<Vec<project::Model>> {
-  Json(match state
-    .project_service
-    .get_user_projects(session.user_id)
-    .await
-  {
-    Ok(value) => value,
-    Err(e) => {
-      error!("error while querying projects {:?}", e);
-      Vec::new()
-    }
-  })
+  Json(
+    match state
+      .project_service
+      .get_user_projects(session.user_id)
+      .await
+    {
+      Ok(value) => value,
+      Err(e) => {
+        error!("error while querying projects {:?}", e);
+        Vec::new()
+      }
+    },
+  )
 }
 
 pub(super) async fn user_repos(

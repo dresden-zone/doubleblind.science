@@ -1,5 +1,3 @@
-use axum::http::header::CONTENT_TYPE;
-use axum::http::Method;
 use axum::Server;
 use clap::Parser;
 use tower_http::cors::{AllowCredentials, Any, CorsLayer};
