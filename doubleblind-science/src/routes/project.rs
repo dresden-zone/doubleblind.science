@@ -1,5 +1,5 @@
 use axum::debug_handler;
-use axum::extract::{Json, State};
+use axum::extract::{Json, Query, State};
 use axum::http::StatusCode;
 use entity::project;
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,11 @@ pub(super) struct RepoInformation {
   id: i64,
   name: String,
   full_name: String,
+}
+
+pub(super) struct RepoPageination {
+  pub page: Option<i64>,
+  pub per_page: Option<i64>
 }
 
 #[debug_handler]
@@ -44,6 +49,7 @@ pub(super) async fn user_projects(
 
 pub(super) async fn user_repos(
   Session(session): Session,
+  Query(query): Query<RepoPageination>,
   State(mut state): State<DoubleBlindState>,
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
   let user_info = match state.user_service.get_user(session.user_id).await {
@@ -93,7 +99,7 @@ pub(super) async fn user_repos(
         )
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header(reqwest::header::USER_AGENT, "doubleblind-science")
-        .query(&vec![("per_page", 9999)]) //TODO: problem
+        .query(&vec![("per_page", query.per_page.unwrap_or(100)), ("page", query.page.unwrap_or(0))]) //TODO: problem
         .send()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
