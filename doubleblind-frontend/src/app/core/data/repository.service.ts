@@ -9,13 +9,10 @@ import {HttpClient, HttpParams} from "@angular/common/http";
   providedIn: 'root'
 })
 export class RepositoryService {
-  private repositories: Repository[] = [];
+  private repositories  = this.getRepoRec(-1);
   constructor(
     private readonly http: HttpClient,
   ) {
-    this.getRepoRec(0).subscribe(value => {
-      this.repositories = value;
-    });
   }
 
   private getRepoRec(current_page: number): Observable<Repository[]> {
@@ -33,6 +30,6 @@ export class RepositoryService {
   }
 
   public getRepositories() : Observable<Repository[]> {
-    return of(this.repositories);
+    return this.repositories;
   }
 }
