@@ -50,7 +50,7 @@ export class ProjectsComponent {
 
     const value = this.form.value;
 
-    this.projectService.create(value.name!, value.repo!)
+    this.projectService.create(value.name!, parseInt(value.repo!))
       .subscribe({
         next: () => {
           this.notificationService.success(`Successfully Created Project`);
