@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {Observable, of} from "rxjs";
+import {map, Observable, of, switchMap} from "rxjs";
 import {Project} from "./project.domain";
 import {Repository} from "./repository.domain";
 import {API_URL} from "./api.domain";
@@ -13,21 +13,19 @@ export class RepositoryService {
   constructor(
     private readonly http: HttpClient,
   ) {
-    let current_page = 0;
-    let new_repos : Repository[] = [];
-    do {
-      new_repos = [];
-      let http_params = new HttpParams().set('page', current_page).set('per_page', 100);
-      this.http.get<Repository[]>(`https://api.${API_URL}/repositories/`, {
-        withCredentials: true,
-        params: http_params
-      }).forEach((value) => {
-        new_repos.concat(value);
-      }).finally()
-      this.repositories.concat(new_repos);
-      console.log("received {} with page {}", new_repos.length, current_page);
-      current_page += 1;
-    } while (new_repos.length > 0);
+    this.getRepoRec(0).subscribe(value => {
+      this.repositories = value;
+    });
+  }
+
+  private getRepoRec(current_page: number): Observable<Repository[]> {
+    let http_params = new HttpParams().set('page', current_page).set('per_page', 100);
+    return this.http.get<Repository[]>(`https://api.${API_URL}/repositories/`, {
+      withCredentials: true,
+      params: http_params
+    }).pipe(switchMap(value => {
+      return this.getRepoRec(current_page + 1).pipe(map(value_2 => [...value,...value_2]));
+    }))
   }
 
   public getRepositories() : Observable<Repository[]> {

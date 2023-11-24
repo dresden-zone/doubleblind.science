@@ -47,7 +47,6 @@ pub(super) async fn user_projects(
   )
 }
 
-#[debug_handler]
 pub(super) async fn user_repos(
   Session(session): Session,
   Query(query): Query<RepoPageination>,
