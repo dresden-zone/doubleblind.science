@@ -69,9 +69,9 @@ export class ProjectService {
     ])
   }
 
-  public create(name: string, repo: string): Observable<void> {
+  public create(name: string, repo: number): Observable<void> {
     console.log("creating project with " + name + " and repo " + repo);
-    return this.http.post(`https://api.${API_URL}/project`, {
+    return this.http.post(`https://api.${API_URL}/project/`, {
       name: name,
       repo: repo
     }).pipe(map(() => void 0));

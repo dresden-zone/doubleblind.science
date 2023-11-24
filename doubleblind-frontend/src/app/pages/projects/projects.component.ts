@@ -34,7 +34,7 @@ export class ProjectsComponent {
 
   protected form = new FormGroup( {
     name: new FormControl(null, [Validators.required, Validators.minLength(6)]),
-    repo: new FormControl(null, [Validators.required]),
+    repo: new FormControl(null, [Validators.required, Validators.pattern("^[0-9]*$")]),
   })
 
   protected visit_website(subdomain: string) {
@@ -43,6 +43,7 @@ export class ProjectsComponent {
 
   protected validate_input_and_submit() {
     if (!this.form.valid) {
+      console.log("invalid form!");
       return;
     }
 
