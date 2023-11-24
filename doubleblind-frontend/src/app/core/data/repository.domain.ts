@@ -1,6 +1,5 @@
 export interface Repository {
-  repo_id: number,
+  id: number,
   name: string,
-  logo: string,
   full_name: string
 }

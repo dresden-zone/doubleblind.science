@@ -10,7 +10,7 @@
           <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
           <feel-dropdown label="Repositories" formControlName="repo">
             <option disabled selected value="0">-- select a repository --</option>
-            <option *ngFor="let repository of (repositories | async)" value="{{repository.repo_id}}">{{repository.full_name}}</option>
+            <option *ngFor="let repository of (repositories | async)" value="{{repository.id}}">{{repository.full_name}}</option>
           </feel-dropdown>
         </form>
         <feel-button (click)="validate_input_and_submit()">Publish!</feel-button>

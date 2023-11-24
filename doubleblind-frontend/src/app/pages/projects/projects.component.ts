@@ -24,6 +24,7 @@ export class ProjectsComponent {
     private readonly repositoryService:RepositoryService,
     private readonly notificationService: NotificationService,
   ) {
+    this.form.valueChanges.subscribe(console.log);
   }
 
   @Input()
