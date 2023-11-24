@@ -22,12 +22,12 @@ pub(super) struct RepoInformation {
   full_name: String,
 }
 
+#[derive(Deserialize)]
 pub(super) struct RepoPageination {
   pub page: Option<i64>,
   pub per_page: Option<i64>
 }
 
-#[debug_handler]
 pub(super) async fn user_projects(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
@@ -47,6 +47,7 @@ pub(super) async fn user_projects(
   )
 }
 
+#[debug_handler]
 pub(super) async fn user_repos(
   Session(session): Session,
   Query(query): Query<RepoPageination>,
