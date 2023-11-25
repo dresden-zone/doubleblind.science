@@ -88,7 +88,7 @@ mod tests {
     let service = DeploymentService::new(PathBuf::from("."), "m4rc3l.de".to_string());
 
     service
-      .deploy("MarcelCoding/zia",  "abc", "main", "zia")
+      .deploy("MarcelCoding/zia", "abc", "main", "zia")
       .await
   }
 }

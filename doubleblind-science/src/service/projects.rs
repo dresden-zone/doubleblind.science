@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use entity::{project, user};
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::ColumnTrait;
@@ -9,8 +10,6 @@ use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use sea_query::Condition;
 use time::OffsetDateTime;
 use uuid::Uuid;
-
-use entity::{project, user};
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {
@@ -42,6 +41,7 @@ impl ProjectService {
     domain: String,
     commit: String,
     github_id: i64,
+    secret_token: String,
   ) -> anyhow::Result<Option<project::Model>> {
     let project_uuid = Uuid::new_v4();
 
@@ -55,6 +55,7 @@ impl ProjectService {
           github_id: Set(Some(github_id)),
           created_at: Set(OffsetDateTime::now_utc()),
           last_update: Set(OffsetDateTime::now_utc()),
+          github_webhook_secret: Set(Some(secret_token)),
           trusted: Set(user.trusted),
         }
         .insert(&*self.db)
@@ -88,6 +89,7 @@ impl ProjectService {
         commit: Unchanged(project.commit),
         created_at: Unchanged(project.created_at),
         github_id: Unchanged(project.github_id),
+        github_webhook_secret: Unchanged(project.github_webhook_secret),
         last_update: Set(OffsetDateTime::now_utc()),
         trusted: Set(!project.trusted),
       }

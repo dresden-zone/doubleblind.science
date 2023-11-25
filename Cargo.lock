@@ -585,6 +585,7 @@ dependencies = [
  "hmac",
  "migration",
  "oauth2",
+ "rand",
  "reqwest",
  "sea-orm",
  "sea-query",

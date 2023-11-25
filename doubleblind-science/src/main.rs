@@ -1,6 +1,6 @@
 use axum::Server;
 use clap::Parser;
-use tower_http::cors::{CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 

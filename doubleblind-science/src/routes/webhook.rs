@@ -1,23 +1,15 @@
-
-
-use axum::extract::{State};
+use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse};
-use axum_extra::extract::cookie::{CookieJar};
+use axum::response::IntoResponse;
+use axum_extra::extract::cookie::CookieJar;
 
 use hmac::{Hmac, Mac};
-
 
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-
-
-use time::{OffsetDateTime};
+use time::OffsetDateTime;
 use tracing::error;
-
-
-
 
 use crate::state::DoubleBlindState;
 

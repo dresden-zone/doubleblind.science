@@ -12,7 +12,6 @@ impl MigrationTrait for Migration {
 
     db.execute_unprepared(
       r#"
-
       CREATE TABLE "user" (
         id UUID PRIMARY KEY,
         platform INT NOT NULL,
@@ -32,6 +31,7 @@ impl MigrationTrait for Migration {
         domain TEXT NOT NULL,
         commit VARCHAR(40) NOT NULL,
         github_id BIGINT,
+        github_webhook_secret TEXT,
         created_at TIMESTAMPTZ NOT NULL,
         last_update TIMESTAMPTZ NOT NULL,
         trusted BOOL NOT NULL
