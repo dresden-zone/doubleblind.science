@@ -70,6 +70,24 @@ in
            description = ''password file from which the github oauth secret can be read'';
          };
     };
+
+    webhookSecretPath = mkOption {
+      type = types.either types.path types.string;
+      description = ''secret that should be used for webhooks'';
+    };
+
+    domain = mkOption {
+      type = types.str;
+      default = "doubleblind.science";
+      description = ''domain under which the websites will be hosted'';
+    };
+
+    storageLocation =  mkOption {
+      type = types.either types.path types.string;
+      default = "/var/lib/doubleblind/sites/";
+      description = ''place where the webpages should be dropped'';
+    };
+
     user = mkOption {
       type = types.str;
       default = "doubleblind";
@@ -108,6 +126,9 @@ in
             "DOUBLEBLIND_POSTGRES_PASSWORD_PATH" = "${cfg.database.passwordFile}";
             "DOUBLEBLIND_GITHUB_CLIENT_ID" = "${cfg.github.clientID}";
             "DOUBLEBLIND_GITHUB_CLIENT_SECRET_PATH" = "${cfg.github.passwordFile}";
+            "DOUBLEBLIND_WEBSITE_PATH" = "${cfg.storageLocation}";
+            "DOUBLEBLIND_WEBSITE" = "${cfg.domain}";
+            "DOUBLEBLIND_GITHUB_WEBHOOK_SECRET_PATH" = "${cfg.webhookSecretPath}";
           };
 
           serviceConfig = {

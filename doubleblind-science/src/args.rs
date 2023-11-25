@@ -29,4 +29,6 @@ pub(super) struct DoubleBlindArgs {
   pub(super) website_path: PathBuf,
   #[arg(long, env = "DOUBLEBLIND_WEBSITE_DOMAIN")]
   pub(super) website_domain: String,
+  #[arg(long, env = "DOUBLEBLIND_GITHUB_WEBHOOK_SECRET_PATH")]
+  pub(super) webhook_secret_path: PathBuf,
 }
