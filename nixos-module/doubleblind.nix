@@ -122,7 +122,7 @@ in
             "DOUBLEBLIND_GITHUB_CLIENT_ID" = "${cfg.github.clientID}";
             "DOUBLEBLIND_GITHUB_CLIENT_SECRET_PATH" = "${cfg.github.passwordFile}";
             "DOUBLEBLIND_WEBSITE_PATH" = "${cfg.storageLocation}";
-            "DOUBLEBLIND_WEBSITE" = "${cfg.domain}";
+            "DOUBLEBLIND_WEBSITE_DOMAIN" = "${cfg.domain}";
           };
 
           serviceConfig = {
