@@ -14,7 +14,6 @@ use crate::state::DoubleBlindState;
 pub(super) struct CreateProjectRequest {
   pub domain: String,
   pub github_name: String,
-  pub repo: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -163,7 +162,7 @@ pub(super) async fn create_project(
 
   match state
     .project_service
-    .get_project_by_name_or_repo(&data.domain, data.repo)
+    .get_project_by_name_or_repo(&data.domain, &data.github_name)
     .await
   {
     Ok(Some(_found_project)) => {
@@ -216,36 +215,6 @@ pub(super) async fn create_project(
 
     let client = reqwest::Client::new();
 
-    let response: GithubRepoInformation = client
-      .get(format!(
-        "https://api.github.com/repos/{}",
-        &data.github_name
-      ))
-      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .header(
-        reqwest::header::AUTHORIZATION,
-        format!("Bearer {}", access_token.clone()),
-      )
-      .header("X-GitHub-Api-Version", "2022-11-28")
-      .header(reqwest::header::USER_AGENT, "doubleblind-science")
-      .send()
-      .await
-      .map_err(|e| {
-        error!("cannot fetch repo information from github {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?
-      .json()
-      .await
-      .map_err(|e| {
-        error!("cannot parse response from github {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?;
-
-    if response.id != data.repo {
-      // repo id and full name dont match
-      return Err(StatusCode::BAD_REQUEST);
-    }
-
     let secret_token: String = rand::thread_rng()
       .sample_iter(&Alphanumeric)
       .take(32)
@@ -297,10 +266,10 @@ pub(super) async fn create_project(
       .project_service
       .create_project(
         user_info.id,
-        data.domain.to_string(),
-        "".to_string(),
-        data.repo,
-        secret_token,
+        &data.domain,
+        "",
+        &data.github_name,
+        &secret_token,
       )
       .await
       .map_err(|err| {

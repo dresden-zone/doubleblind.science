@@ -30,7 +30,7 @@ impl MigrationTrait for Migration {
         owner UUID NOT NULL REFERENCES "user"(id),
         domain TEXT NOT NULL,
         commit VARCHAR(40) NOT NULL,
-        github_id BIGINT,
+        github_name TEXT,
         github_webhook_secret TEXT,
         created_at TIMESTAMPTZ NOT NULL,
         last_update TIMESTAMPTZ NOT NULL,

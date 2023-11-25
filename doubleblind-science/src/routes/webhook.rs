@@ -75,7 +75,7 @@ pub(super) async fn github_webhook(
 
   let project = match state
     .project_service
-    .get_projects_by_github_id(data.repository.id)
+    .get_projects_by_github_id(&data.repository.full_name)
     .await
   {
     Ok(Some(value)) => value,

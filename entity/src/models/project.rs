@@ -12,7 +12,8 @@ pub struct Model {
   #[sea_orm(column_type = "Text")]
   pub domain: String,
   pub commit: String,
-  pub github_id: Option<i64>,
+  #[sea_orm(column_type = "Text", nullable)]
+  pub github_name: Option<String>,
   #[sea_orm(column_type = "Text", nullable)]
   pub github_webhook_secret: Option<String>,
   pub created_at: TimeDateTimeWithTimeZone,
