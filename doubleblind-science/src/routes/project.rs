@@ -31,7 +31,6 @@ pub(super) struct RepoPageination {
 
 #[derive(Deserialize)]
 pub(super) struct WebhookRegistrationResponse {
-  pub r#type: String,
   pub active: bool,
   pub id: i64,
 }
