@@ -115,7 +115,7 @@ pub(super) async fn github_webhook(
     user_info.github_refresh_token,
     user_info.github_refresh_token_expire,
   ) {
-    if access_token_expr > OffsetDateTime::now_utc() {
+    if access_token_expr < OffsetDateTime::now_utc() {
       match state
         .user_service
         .fresh_access_token(&mut state.oauth_github_client, user_info.id)

@@ -109,7 +109,7 @@ pub(super) async fn user_repos(
     user_info.github_refresh_token,
     user_info.github_refresh_token_expire,
   ) {
-    if access_token_expr > OffsetDateTime::now_utc() {
+    if access_token_expr < OffsetDateTime::now_utc() {
       match state
         .user_service
         .fresh_access_token(&mut state.oauth_github_client, session.user_id)
@@ -199,7 +199,7 @@ pub(super) async fn create_project(
     user_info.github_refresh_token,
     user_info.github_refresh_token_expire,
   ) {
-    if access_token_expr > OffsetDateTime::now_utc() {
+    if access_token_expr < OffsetDateTime::now_utc() {
       match state
         .user_service
         .fresh_access_token(&mut state.oauth_github_client, session.user_id)
