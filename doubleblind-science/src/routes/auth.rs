@@ -133,7 +133,7 @@ pub(super) async fn auth_login_github_callback(
       .update_github_access_token(
         user.id,
         &access_token,
-        OffsetDateTime::now_utc() + Duration::days(15),
+        OffsetDateTime::now_utc() + Duration::hours(8) // TODO: dervive that dynamically
       )
       .await
       .map_err(|err| {

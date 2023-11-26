@@ -159,6 +159,8 @@ pub(super) async fn create_project(
     return Err(StatusCode::BAD_REQUEST);
   }
 
+  info!("user {} trying to create project subdomain: {} github repo: {}", &session.user_id, &data.domain, &data.github_name);
+
   match state
     .project_service
     .get_project_by_name_or_repo(&data.domain, &data.github_name)
@@ -174,7 +176,7 @@ pub(super) async fn create_project(
     }
     _ => {}
   }
-
+  // TODO: throw away is redudant
   let user_info = match state.user_service.get_user(session.user_id).await {
     Ok(Some(user)) => user,
     Err(e) => {
@@ -204,6 +206,7 @@ pub(super) async fn create_project(
         .await
       {
         Some(new_token) => {
+          info!("successfully refreshed access token!");
           access_token = new_token;
         }
         None => {
@@ -252,15 +255,10 @@ pub(super) async fn create_project(
 
     info!("information from github for webhook register {:?}", response);
 
-
     if response.status() != StatusCode::CREATED {
       error!("github api returned {}", response.status());
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    //if !response.active {
-      // getting strange feedback from github
-      //return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    //}
 
     let _model = state
       .project_service

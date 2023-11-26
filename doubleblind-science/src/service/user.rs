@@ -12,7 +12,7 @@ use sea_orm::QueryFilter;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use time::OffsetDateTime;
-use tracing::error;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use entity::user;
@@ -147,6 +147,7 @@ impl UserService {
     oauth_client: &mut BasicClient,
     user_id: Uuid,
   ) -> Option<String> {
+    info!("trying to renew access token for user {}", &user_id);
     if let Ok(Some(user_info)) = self.get_user(user_id).await {
       if let (
         Some(access_token),
