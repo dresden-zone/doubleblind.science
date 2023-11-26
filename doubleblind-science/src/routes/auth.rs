@@ -155,9 +155,9 @@ pub(super) async fn auth_login_github_callback(
       .create_github_user(
         res.id,
         refresh_token,
-        OffsetDateTime::now_utc() + Duration::minutes(14),
+        OffsetDateTime::now_utc() + Duration::days(160),
         access_token,
-        OffsetDateTime::now_utc() + Duration::days(15),
+        OffsetDateTime::now_utc() + Duration::hours(8),
       )
       .await
       .map_err(|err| {
