@@ -220,7 +220,7 @@ pub(super) async fn create_project(
       .map(char::from)
       .collect();
 
-    let response: WebhookRegistrationResponse = client
+    let response = client
       .post(format!(
         "https://api.github.com/repos/{}/hooks",
         &data.github_name
@@ -248,18 +248,19 @@ pub(super) async fn create_project(
       .map_err(|e| {
         error!("cannot register webhook with github {e}");
         StatusCode::INTERNAL_SERVER_ERROR
-      })?
-      .json()
-      .await
-      .map_err(|e| {
-        error!("cannot parse response from github {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
       })?;
 
-    if !response.active {
-      // getting strange feedback from github
+    info!("information from github for webhook register {:?}", response);
+
+
+    if response.status() != StatusCode::CREATED {
+      error!("github api returned {}", response.status());
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
+    //if !response.active {
+      // getting strange feedback from github
+      //return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    //}
 
     let _model = state
       .project_service
