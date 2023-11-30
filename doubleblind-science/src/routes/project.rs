@@ -40,7 +40,7 @@ pub(super) struct WebHookInformation {
   url: String,
   content_type: String,
   insecure_ssl: String,
-  token: String,
+  //token: String,
 }
 
 #[derive(Serialize)]
@@ -238,12 +238,12 @@ pub(super) async fn create_project(
       .json(&WebhookRegistrationRequest {
         name: "doubleblind-science-deploy-hook".to_string(),
         active: true,
-        events: vec!["push".to_string()],
+        events: Vec::new(),//vec!["push".to_string()],
         config: WebHookInformation {
           url: "https://api.science.tanneberger.me/hooks/github".to_string(),
           content_type: "json".to_string(),
           insecure_ssl: "0".to_string(),
-          token: secret_token.clone(),
+          //token: secret_token.clone(),
         },
       })
       .send()
