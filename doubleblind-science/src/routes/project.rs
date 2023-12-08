@@ -62,6 +62,15 @@ pub(super) struct GithubRepoInformation {
   full_name: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub(super) struct SearchItem {
+  full_name: String
+}
+#[derive(Serialize, Deserialize)]
+pub(super) struct SearchResponse {
+  items: Vec<SearchItem>
+}
+
 pub(super) async fn user_projects(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
@@ -85,7 +94,7 @@ pub(super) async fn search_user_repos(
   Session(session): Session,
   Query(query): Query<RepoSearch>,
   State(mut state): State<DoubleBlindState>,
-) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
+) -> Result<Json<SearchResponse>, StatusCode> {
   let user_info = match state.user_service.get_user(session.user_id).await {
     Ok(Some(user)) => user,
     Err(e) => {
