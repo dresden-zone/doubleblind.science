@@ -8,7 +8,7 @@
         <h2>Publish Your Artifacts</h2>
         <form class="create-project-input" [formGroup]="form">
           <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
-          <feel-dropdown label="Repositories" formControlName="github_name">
+          <feel-dropdown label="Repositories" formControlName="github_name" (rawInput)="searchTerm.next($event)">
             <feel-option *ngFor="let repository of (repositories | async)" [value]=repository.full_name [label]=repository.full_name></feel-option>
           </feel-dropdown>
         </form>
