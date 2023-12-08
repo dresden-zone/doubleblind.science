@@ -2,7 +2,7 @@ use axum::routing::{get, post};
 use axum::Router;
 
 use crate::routes::auth::{auth_login_github, auth_login_github_callback, auth_me};
-use crate::routes::project::{create_project, user_projects, user_repos};
+use crate::routes::project::{create_project, user_projects, search_user_repos};
 use crate::routes::webhook::github_webhook;
 use crate::state::DoubleBlindState;
 
@@ -17,6 +17,6 @@ pub(crate) fn route() -> Router<DoubleBlindState> {
     .route("/auth/callback/github", get(auth_login_github_callback))
     .route("/project/", post(create_project))
     .route("/project/", get(user_projects))
-    .route("/repositories/", get(user_repos))
+    .route("/repositories/", get(search_user_repos))
     .route("/hooks/github", get(github_webhook))
 }

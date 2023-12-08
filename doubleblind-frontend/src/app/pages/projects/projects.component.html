@@ -9,8 +9,7 @@
         <form class="create-project-input" [formGroup]="form">
           <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
           <feel-dropdown label="Repositories" formControlName="github_name">
-            <option disabled selected value="0">-- select a repository --</option>
-            <option *ngFor="let repository of (repositories | async)" value="{{repository.full_name}}">{{repository.full_name}}</option>
+            <feel-option *ngFor="let repository of (repositories | async)" [value]=repository.full_name [label]=repository.full_name></feel-option>
           </feel-dropdown>
         </form>
         <feel-button (click)="validate_input_and_submit()">Publish!</feel-button>

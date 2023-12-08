@@ -2,7 +2,7 @@ import {Component, Input} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {ProjectService} from "../../core/data/project.service";
 import {IconTrashComponent} from "../../core/icons/icon-trash/icon-trash.component";
-import {ButtonComponent, TextFieldComponent, DropdownComponent} from "@feel/form";
+import {ButtonComponent, TextFieldComponent, DropdownComponent, OptionComponent} from "@feel/form";
 import {CardComponent} from "../../core/components/card/card.component";
 import {IconEyeComponent} from "../../core/icons/icon-eye/icon-eye.component";
 import {RepositoryService} from "../../core/data/repository.service";
@@ -12,7 +12,7 @@ import {NotificationService} from "@feel/notification";
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent, IconEyeComponent, TextFieldComponent, TextFieldComponent, ButtonComponent, DropdownComponent, ReactiveFormsModule],
+  imports: [CommonModule, IconTrashComponent, ButtonComponent, CardComponent, IconEyeComponent, TextFieldComponent, TextFieldComponent, ButtonComponent, DropdownComponent, ReactiveFormsModule, OptionComponent],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss'
 })

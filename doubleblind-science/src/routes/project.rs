@@ -24,9 +24,8 @@ pub(super) struct RepoInformation {
 }
 
 #[derive(Deserialize)]
-pub(super) struct RepoPageination {
-  pub page: Option<i64>,
-  pub per_page: Option<i64>,
+pub(super) struct RepoSearch {
+  search: String
 }
 
 #[derive(Deserialize)]
@@ -82,9 +81,9 @@ pub(super) async fn user_projects(
   )
 }
 
-pub(super) async fn user_repos(
+pub(super) async fn search_user_repos(
   Session(session): Session,
-  Query(query): Query<RepoPageination>,
+  Query(query): Query<RepoSearch>,
   State(mut state): State<DoubleBlindState>,
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
   let user_info = match state.user_service.get_user(session.user_id).await {
@@ -126,7 +125,7 @@ pub(super) async fn user_repos(
 
     Ok(Json(
       reqwest::Client::new()
-        .get("https://api.github.com/user/repos")
+        .get("https://api.github.com/search/repositories")
         .header(reqwest::header::ACCEPT, "application/vnd.github+json")
         .header(
           reqwest::header::AUTHORIZATION,
@@ -135,9 +134,10 @@ pub(super) async fn user_repos(
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header(reqwest::header::USER_AGENT, "doubleblind-science")
         .query(&vec![
-          ("per_page", query.per_page.unwrap_or(100)),
-          ("page", query.page.unwrap_or(0)),
-        ]) //TODO: problem
+          ("per_page", "100"),
+          ("page", "0"),
+          ("q", &query.search)
+        ])
         .send()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -238,7 +238,7 @@ pub(super) async fn create_project(
       .json(&WebhookRegistrationRequest {
         name: "doubleblind-science-deploy-hook".to_string(),
         active: true,
-        events: Vec::new(),//vec!["push".to_string()],
+        events: vec!["push".to_string()],
         config: WebHookInformation {
           url: "https://api.science.tanneberger.me/hooks/github".to_string(),
           content_type: "json".to_string(),
