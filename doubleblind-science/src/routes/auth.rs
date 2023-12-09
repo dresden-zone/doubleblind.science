@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
-use tracing::error;
+use tracing::{error, info};
 use url::Url;
 use uuid::Uuid;
 
@@ -31,6 +31,7 @@ pub(super) struct ReturnUrl {
 pub(super) struct UserInformation {
   id: Uuid,
   github_id: i64,
+  github_token: String
 }
 
 const CSRF_COOKIE: &str = "csrf_state_id";
@@ -189,24 +190,55 @@ pub(super) async fn auth_login_github_callback(
 }
 
 pub(super) async fn auth_me(
-  State(state): State<DoubleBlindState>,
+  State(mut state): State<DoubleBlindState>,
   Session(session): Session,
 ) -> Result<Json<UserInformation>, StatusCode> {
-  match state.user_service.get_user(session.user_id).await {
-    Ok(Some(user_data)) => {
-      if let Some(github_id) = user_data.github_user_id {
-        Ok(Json(UserInformation {
-          id: session.user_id,
-          github_id,
-        }))
-      } else {
-        Err(StatusCode::INTERNAL_SERVER_ERROR)
-      }
-    }
+  // TODO: throw away is redudant
+  let user_info = match state.user_service.get_user(session.user_id).await {
+    Ok(Some(user)) => user,
     Err(e) => {
-      error!("while searching for user in database {:?}", e);
-      Err(StatusCode::INTERNAL_SERVER_ERROR)
+      error!("while trying to fetch user {:?}", e);
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    _ => Err(StatusCode::NOT_FOUND),
+    _ => {
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  if let (
+    Some(mut access_token),
+    Some(access_token_expr),
+    Some(_refresh_token),
+    Some(_refresh_token_expr),
+  ) = (
+    user_info.github_access_token,
+    user_info.github_access_token_expire,
+    user_info.github_refresh_token,
+    user_info.github_refresh_token_expire,
+  ) {
+    if access_token_expr < OffsetDateTime::now_utc() {
+      match state
+          .user_service
+          .fresh_access_token(&mut state.oauth_github_client, session.user_id)
+          .await
+      {
+        Some(new_token) => {
+          info!("successfully refreshed access token!");
+          access_token = new_token;
+        }
+        None => {
+          return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+      };
+    }
+
+    Ok(Json(UserInformation {
+      id: user_info.id,
+      github_id: user_info.github_user_id.unwrap_or(0),
+      github_token: access_token,
+    }))
+  } else {
+    error!("cannot get github data");
+    Err(StatusCode::INTERNAL_SERVER_ERROR)
   }
 }
