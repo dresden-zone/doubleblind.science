@@ -34,14 +34,14 @@ export class ProjectsComponent {
 
   protected form = new FormGroup( {
     name: new FormControl(null, [Validators.required, Validators.minLength(6)]),
-    repo: new FormControl(null, [Validators.required, Validators.pattern(/.+\/.+/)]),
+    //repo: new FormControl(null, [Validators.required, Validators.pattern(/.+\/.+/)]),
   })
 
   protected visit_website(subdomain: string) {
       location.href=`https://${subdomain}.science.tanneberger.me`;
   }
 
-  protected validate_input_and_submit() {
+  protected validate_input_and_submit(repo: string) {
     if (!this.form.valid) {
       console.log("invalid form!");
       return;
@@ -49,7 +49,7 @@ export class ProjectsComponent {
 
     const value = this.form.value;
 
-    this.projectService.create(value.name!, value.repo!)
+    this.projectService.create(value.name!, repo!)
       .subscribe({
         next: () => {
           this.notificationService.success(`Successfully Created Project`);

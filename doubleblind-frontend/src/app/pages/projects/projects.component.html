@@ -3,36 +3,38 @@
 <main>
   <div class="container">
     <a href="/"><h1 class="title">Doubleblind.Science</h1></a>
-    <app-card >
+    <!--<app-card >
       <div class="create-project-body">
         <h2>Publish Your Artifacts</h2>
         <form class="create-project-input" [formGroup]="form">
-          <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
           <feel-text-field label="Github Repositoriy" formControlName="repo"></feel-text-field>
         </form>
         <feel-button (click)="validate_input_and_submit()">Publish!</feel-button>
       </div>
-    </app-card>
+    </app-card>-->
     <app-card>
       <div class="project-list">
         <h2>Your Sites</h2>
         <table>
           <thead>
           <tr>
-            <th>Name</th>
+            <th>Subdomain</th>
             <th>Repo</th>
-            <th>Last Updated</th>
-            <th></th>
             <th></th>
           </tr>
           </thead>
           <tbody>
           <tr *ngFor="let project of (projects | async )">
-            <td>{{project.name}}</td>
-            <td>{{project.repo}}</td>
-            <td>{{project.last_update | date}}</td>
-            <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
-            <td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>
+            <td colspan="2">
+
+              <form class="create-project-input" [formGroup]="form">
+                <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
+                <label>{{project.name}}</label>
+                <feel-button (click)="validate_input_and_submit(project.name)">Deploy!</feel-button>
+              </form>
+            </td>
+            <!--<td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>-->
+            <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
           </tr>
           </tbody>
         </table>

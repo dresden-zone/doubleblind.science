@@ -16,6 +16,6 @@ import {IconLasrComponent} from "../../core/icons/icon-lasr/icon-lasr.component"
 })
 export class LandingpageComponent {
   protected call() {
-    location.href='https://api.science.tanneberger.me/auth/login/github';
+    location.href='https://github.com/apps/doubleblind-science-testing';
   }
 }
