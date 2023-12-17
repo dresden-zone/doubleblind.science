@@ -4,9 +4,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use oauth2::basic::BasicClient;
-use oauth2::{AuthUrl, ClientId, ClientSecret, CsrfToken, RedirectUrl, TokenUrl};
+use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sea_orm::{ConnectOptions, Database};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{RwLock};
 use uuid::Uuid;
 
 use migration::{Migrator, MigratorTrait};

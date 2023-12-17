@@ -4,24 +4,24 @@ use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
-use entity::github_app;
+
 use oauth2::reqwest::async_http_client;
 use oauth2::{AuthorizationCode, TokenResponse};
-use rand::{distributions::Alphanumeric, Rng};
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::future::Future;
+
+
 use std::sync::Arc;
 
 use time::{Duration, OffsetDateTime};
-use tokio::sync::RwLockWriteGuard;
+
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
-use crate::structs::GithubUserInfo;
+
 
 #[derive(Deserialize)]
 pub(super) struct CreateProjectRequest {
@@ -85,7 +85,7 @@ pub(super) struct ListOfRepos {
   repositories: Vec<RepoInformation>,
 }
 pub(super) async fn github_setup_webhook(
-  State(mut state): State<DoubleBlindState>,
+  State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
   jar: CookieJar,
 ) -> Result<(CookieJar, Redirect), Redirect> {
@@ -155,7 +155,7 @@ pub(super) async fn github_setup_webhook(
 pub async fn github_app_repositories(
   Session(session): Session,
   State(mut state): State<DoubleBlindState>,
-  jar: CookieJar,
+  _jar: CookieJar,
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
   let mut github_app = match state
     .project_service

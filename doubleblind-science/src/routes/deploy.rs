@@ -8,7 +8,7 @@ use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-use time::OffsetDateTime;
+
 use tracing::error;
 
 use crate::state::DoubleBlindState;
@@ -36,7 +36,7 @@ pub(super) struct GithubWebhookRequest {
 }
 
 pub(super) async fn github_deploy_webhook(
-  State(mut state): State<DoubleBlindState>,
+  State(_state): State<DoubleBlindState>,
   headers: HeaderMap,
   _jar: CookieJar,
   raw_body: String,

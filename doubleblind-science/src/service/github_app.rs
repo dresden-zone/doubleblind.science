@@ -7,13 +7,13 @@ use entity::github_app;
 use entity::github_app::Model;
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
-use sea_orm::ColumnTrait;
-use sea_orm::QueryFilter;
+
+
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-use sea_query::Condition;
+
 use time::{Duration, OffsetDateTime};
-use tracing::error;
+
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -43,7 +43,7 @@ impl ProjectService {
     access_token: &String,
     access_token_expire: OffsetDateTime,
   ) -> anyhow::Result<github_app::Model> {
-    let github_app_uuid = Uuid::new_v4();
+    let _github_app_uuid = Uuid::new_v4();
     Ok(
       github_app::ActiveModel {
         id: Set(Uuid::new_v4()),
