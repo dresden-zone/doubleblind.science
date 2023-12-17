@@ -1,3 +1,2 @@
-pub mod deployment;
-pub mod projects;
-pub mod user;
+pub mod deploy;
+pub mod github_app;

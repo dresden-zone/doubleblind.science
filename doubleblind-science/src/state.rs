@@ -12,16 +12,15 @@ use uuid::Uuid;
 use migration::{Migrator, MigratorTrait};
 
 use crate::auth::SessionData;
-use crate::service::deployment::DeploymentService;
-use crate::service::projects::ProjectService;
-use crate::service::user::UserService;
+use crate::service::deploy::DeploymentService;
+use crate::service::github_app::ProjectService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
   pub oauth_github_client: BasicClient,
-  pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
+  //pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
-  pub user_service: UserService,
+  //pub user_service: UserService,
   pub project_service: ProjectService,
   pub deployment_service: DeploymentService,
 }
@@ -89,9 +88,9 @@ impl DoubleBlindState {
 
     DoubleBlindState {
       oauth_github_client: client,
-      csrf_state: Default::default(),
+      //csrf_state: Default::default(),
       sessions: Default::default(),
-      user_service: UserService::from_db(db.clone()),
+      //user_service: UserService::from_db(db.clone()),
       project_service: ProjectService::from_db(db.clone()),
       deployment_service: DeploymentService::new(
         website_path.to_path_buf(),

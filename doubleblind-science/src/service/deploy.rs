@@ -81,7 +81,7 @@ impl DeploymentService {
 mod tests {
   use std::path::PathBuf;
 
-  use crate::service::deployment::DeploymentService;
+  use crate::service::deploy::DeploymentService;
 
   #[tokio::test]
   async fn test_deployment_service() -> anyhow::Result<()> {

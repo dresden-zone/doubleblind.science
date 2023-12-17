@@ -12,29 +12,25 @@ impl MigrationTrait for Migration {
 
     db.execute_unprepared(
       r#"
-      CREATE TABLE "user" (
+      CREATE TABLE github_app (
         id UUID PRIMARY KEY,
-        platform INT NOT NULL,
-        trusted BOOL NOT NULL,
-        admin BOOL NOT NULL,
-        github_refresh_token TEXT,
-        github_refresh_token_expire TIMESTAMPTZ,
-        github_access_token TEXT,
-        github_access_token_expire TIMESTAMPTZ,
-        github_user_id BIGINT,
+        installation_id BIGINT NOT NULL,
+        github_refresh_token TEXT NOT NULL,
+        github_refresh_token_expire TIMESTAMPTZ NOT NULL,
+        github_access_token TEXT NOT NULL,
+        github_access_token_expire TIMESTAMPTZ NOT NULL,
         last_update TIMESTAMPTZ NOT NULL
       );
 
-      CREATE TABLE project (
+      CREATE TABLE repository (
         id UUID PRIMARY KEY,
-        owner UUID NOT NULL REFERENCES "user"(id),
+        github_app UUID NOT NULL REFERENCES github_app(id),
         domain TEXT NOT NULL,
         commit VARCHAR(40) NOT NULL,
         github_name TEXT,
-        github_webhook_secret TEXT,
+        trusted BOOL NOT NULL,
         created_at TIMESTAMPTZ NOT NULL,
-        last_update TIMESTAMPTZ NOT NULL,
-        trusted BOOL NOT NULL
+        last_update TIMESTAMPTZ NOT NULL
       );
     "#,
     )

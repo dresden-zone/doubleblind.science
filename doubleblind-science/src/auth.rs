@@ -13,7 +13,7 @@ use crate::state::DoubleBlindState;
 pub(crate) const SESSION_COOKIE: &str = "session_id";
 
 pub(crate) struct SessionData {
-  pub(crate) user_id: Uuid,
+  pub(crate) github_app: Uuid,
 }
 
 pub(crate) struct Session(pub Arc<SessionData>);

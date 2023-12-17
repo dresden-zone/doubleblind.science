@@ -4,38 +4,36 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "project")]
+#[sea_orm(table_name = "repository")]
 pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
-  pub owner: Uuid,
+  pub github_app: Uuid,
   #[sea_orm(column_type = "Text")]
   pub domain: String,
   pub commit: String,
   #[sea_orm(column_type = "Text", nullable)]
   pub github_name: Option<String>,
-  #[sea_orm(column_type = "Text", nullable)]
-  pub github_webhook_secret: Option<String>,
+  pub trusted: bool,
   pub created_at: TimeDateTimeWithTimeZone,
   pub last_update: TimeDateTimeWithTimeZone,
-  pub trusted: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
   #[sea_orm(
-    belongs_to = "super::user::Entity",
-    from = "Column::Owner",
-    to = "super::user::Column::Id",
+    belongs_to = "super::github_app::Entity",
+    from = "Column::GithubApp",
+    to = "super::github_app::Column::Id",
     on_update = "NoAction",
     on_delete = "NoAction"
   )]
-  User,
+  GithubApp,
 }
 
-impl Related<super::user::Entity> for Entity {
+impl Related<super::github_app::Entity> for Entity {
   fn to() -> RelationDef {
-    Relation::User.def()
+    Relation::GithubApp.def()
   }
 }
 

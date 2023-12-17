@@ -2,5 +2,5 @@
 
 pub mod prelude;
 
-pub mod project;
-pub mod user;
+pub mod github_app;
+pub mod repository;
