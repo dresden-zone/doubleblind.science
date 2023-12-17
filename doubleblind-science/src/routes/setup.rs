@@ -1,45 +1,28 @@
-use axum::body::HttpBody;
-use axum::extract::{Json, Query, State};
-use axum::http::StatusCode;
-use axum::response::Redirect;
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use axum_extra::extract::CookieJar;
-
-use oauth2::reqwest::async_http_client;
-use oauth2::{AuthorizationCode, TokenResponse};
-
+use axum::{
+  extract::{Json, Query, State},
+  http::StatusCode,
+  response::Redirect,
+};
+use axum_extra::extract::{
+  cookie::{Cookie, SameSite},
+  CookieJar,
+};
+use oauth2::{reqwest::async_http_client, AuthorizationCode, TokenResponse};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-
-
 use std::sync::Arc;
-
 use time::{Duration, OffsetDateTime};
-
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::state::DoubleBlindState;
 
-
-#[derive(Deserialize)]
-pub(super) struct CreateProjectRequest {
-  pub domain: String,
-  pub github_name: String,
-}
-
 #[derive(Serialize, Deserialize)]
 pub(super) struct RepoInformation {
   id: i64,
   name: String,
   full_name: String,
-}
-
-#[derive(Deserialize)]
-pub(super) struct WebhookRegistrationResponse {
-  pub active: bool,
-  pub id: i64,
 }
 
 #[derive(Serialize)]
@@ -76,14 +59,21 @@ enum SetupAction {
 pub(super) struct GithubAppRegistrationCallback {
   installation_id: i64,
   code: String,
-  setup_action: SetupAction,
+  _setup_action: SetupAction,
 }
 
 #[derive(Deserialize)]
 pub(super) struct ListOfRepos {
-  total_count: i64,
+  _total_count: i64,
   repositories: Vec<RepoInformation>,
 }
+
+#[derive(Deserialize)]
+pub(super) struct DeploySite {
+  domain: String,
+  full_name: String,
+}
+
 pub(super) async fn github_setup_webhook(
   State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
@@ -189,7 +179,7 @@ pub async fn github_app_repositories(
 
   let response: ListOfRepos = client
     .get("https://api.github.com/installations/repositories")
-    .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+    .header(reqwest::header::ACCEPT, "applggication/vnd.github+json")
     .header(
       reqwest::header::AUTHORIZATION,
       format!("Bearer {}", github_app.github_access_token.clone()),
@@ -213,4 +203,75 @@ pub async fn github_app_repositories(
     })?;
 
   Ok(Json(response.repositories))
+}
+
+pub async fn github_app_deploy_website(
+  Session(session): Session,
+  State(mut state): State<DoubleBlindState>,
+  Json(data): Json<DeploySite>,
+  _jar: CookieJar,
+) -> Result<StatusCode, StatusCode> {
+  let mut github_app = match state
+    .project_service
+    .get_github_app(session.github_app)
+    .await
+  {
+    Ok(Some(value)) => value,
+    Ok(None) => {
+      info!("no github installation with this name!");
+      return Err(StatusCode::NOT_FOUND);
+    }
+    Err(e) => {
+      error!("error while trying to query github apps {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  github_app = match state
+    .project_service
+    .refresh_tokens(github_app, &mut state.oauth_github_client)
+    .await
+  {
+    Ok(value) => value,
+    Err(e) => {
+      error!("cannot refresh github tokens with error {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  state
+    .project_service
+    .create_repository(github_app.id, data.domain, data.full_name.clone())
+    .await
+    .map_err(|e| {
+      error!("cannot create repository {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+  // triggering deployment via github webhook
+  let client = Client::new();
+  Ok(
+    client
+      .get(format!(
+        "https://api.github.com/repos/{}/dispatches",
+        &data.full_name
+      ))
+      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+      .header(
+        reqwest::header::AUTHORIZATION,
+        format!("Bearer {}", github_app.github_access_token.clone()),
+      )
+      .header("X-GitHub-Api-Version", "2022-11-28")
+      .header(reqwest::header::USER_AGENT, "doubleblind-science")
+      .json(&GithubDispatchEvent {
+        event_type: "doubleblind-science-setup".to_string(),
+      })
+      .send()
+      .await
+      .map_err(|e| {
+        error!("cannot dispatch webhook event with github {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+      })?
+      .status(),
+  )
 }

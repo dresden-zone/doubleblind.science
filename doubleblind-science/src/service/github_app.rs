@@ -3,14 +3,16 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{RefreshToken, TokenResponse};
 use std::sync::Arc;
 
-use entity::github_app;
 use entity::github_app::Model;
+use entity::{github_app, repository};
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
-
+use sea_orm::ColumnTrait;
+use sea_orm::QueryFilter;
 
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
+
 
 use time::{Duration, OffsetDateTime};
 
@@ -179,5 +181,39 @@ impl ProjectService {
     }
 
     Ok(github_app)
+  }
+
+  pub(crate) async fn create_repository(
+    &self,
+    github_app: Uuid,
+    domain: String,
+    github_full_name: String,
+  ) -> anyhow::Result<repository::Model> {
+    let repo_uuid = Uuid::new_v4();
+    Ok(
+      repository::ActiveModel {
+        id: Set(repo_uuid),
+        github_app: Set(github_app),
+        domain: Set(domain),
+        github_name: Set(github_full_name),
+        trusted: Set(false),
+        created_at: Set(OffsetDateTime::now_utc()),
+        last_update: Set(OffsetDateTime::now_utc()),
+      }
+      .insert(&*self.db)
+      .await?,
+    )
+  }
+
+  pub(crate) async fn get_repository(
+    &self,
+    github_full_name: String,
+  ) -> anyhow::Result<Option<repository::Model>> {
+    Ok(
+      repository::Entity::find()
+        .filter(repository::Column::GithubName.eq(github_full_name))
+        .one(&*self.db)
+        .await?,
+    )
   }
 }

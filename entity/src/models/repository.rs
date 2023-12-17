@@ -11,9 +11,8 @@ pub struct Model {
   pub github_app: Uuid,
   #[sea_orm(column_type = "Text")]
   pub domain: String,
-  pub commit: String,
-  #[sea_orm(column_type = "Text", nullable)]
-  pub github_name: Option<String>,
+  #[sea_orm(column_type = "Text")]
+  pub github_name: String,
   pub trusted: bool,
   pub created_at: TimeDateTimeWithTimeZone,
   pub last_update: TimeDateTimeWithTimeZone,

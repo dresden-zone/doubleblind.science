@@ -1,15 +1,15 @@
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::IntoResponse;
-use axum_extra::extract::cookie::CookieJar;
+
+
+
 
 use hmac::{Hmac, Mac};
 
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-
-use tracing::error;
+use tracing::{error, info};
 
 use crate::state::DoubleBlindState;
 
@@ -36,18 +36,17 @@ pub(super) struct GithubWebhookRequest {
 }
 
 pub(super) async fn github_deploy_webhook(
-  State(_state): State<DoubleBlindState>,
+  State(mut state): State<DoubleBlindState>,
   headers: HeaderMap,
-  _jar: CookieJar,
   raw_body: String,
-) -> impl IntoResponse {
+) -> Result<StatusCode, StatusCode> {
   type HmacSha256 = Hmac<Sha256>;
 
   let hash = match headers.get("X-Hub-Signature-256") {
     Some(value) => value,
     None => {
       error!("github didn't send HMAC challange hash!");
-      return StatusCode::BAD_REQUEST;
+      return Err(StatusCode::BAD_REQUEST);
     }
   };
 
@@ -58,14 +57,83 @@ pub(super) async fn github_deploy_webhook(
 
       if result != hash.as_bytes().iter().as_slice() {
         error!("non github entity tried to call the webhook endpoint!");
-        return StatusCode::FORBIDDEN;
+        return Err(StatusCode::FORBIDDEN);
       }
     }
     Err(e) => {
       error!("cannot generate hmac with error {}", e);
-      return StatusCode::INTERNAL_SERVER_ERROR;
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   }
 
-  StatusCode::INTERNAL_SERVER_ERROR
+  let data: GithubWebhookRequest = match serde_json::from_str(&raw_body) {
+    Ok(value) => value,
+    Err(e) => {
+      error!("cannot parse json body from request body {e}");
+      return Err(StatusCode::BAD_REQUEST);
+    }
+  };
+
+  let repository = match state
+    .project_service
+    .get_repository(data.repository.full_name.clone())
+    .await
+  {
+    Ok(Some(value)) => value,
+    Ok(None) => {
+      info!(
+        "github tried to call webhook for undeployed repo {}",
+        data.repository.full_name
+      );
+      return Err(StatusCode::NOT_FOUND);
+    }
+    Err(e) => {
+      error!("error while trying to query repo {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  let mut github_app = match state
+    .project_service
+    .get_github_app(repository.github_app)
+    .await
+  {
+    Ok(Some(value)) => value,
+    Ok(None) => {
+      info!("no github installation with this name!");
+      return Err(StatusCode::NOT_FOUND);
+    }
+    Err(e) => {
+      error!("error while trying to query github apps {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  github_app = match state
+    .project_service
+    .refresh_tokens(github_app, &mut state.oauth_github_client)
+    .await
+  {
+    Ok(value) => value,
+    Err(e) => {
+      error!("cannot refresh github tokens with error {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  };
+
+  state
+    .deployment_service
+    .deploy(
+      &repository.github_name,
+      &github_app.github_access_token,
+      &data.after,
+      repository.domain,
+    )
+    .await
+    .map_err(|e| {
+      error!("error while deploying the newest version {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+  Ok(StatusCode::OK)
 }

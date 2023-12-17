@@ -29,7 +29,7 @@ impl DeploymentService {
     full_name: &str,
     token: &str,
     commit_id: &str,
-    domain: &str,
+    domain: String,
   ) -> anyhow::Result<()> {
     let dist = self.webroot.join(format!("{domain}.{}", self.root_domain));
 
@@ -88,7 +88,7 @@ mod tests {
     let service = DeploymentService::new(PathBuf::from("."), "m4rc3l.de".to_string());
 
     service
-      .deploy("MarcelCoding/zia", "abc", "main", "zia")
+      .deploy("MarcelCoding/zia", "abc", "main", "zia".to_string())
       .await
   }
 }
