@@ -59,7 +59,7 @@ enum SetupAction {
 pub(super) struct GithubAppRegistrationCallback {
   installation_id: i64,
   code: String,
-  _setup_action: SetupAction,
+  setup_action: SetupAction,
 }
 
 #[derive(Deserialize)]
