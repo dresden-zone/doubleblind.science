@@ -53,6 +53,8 @@ enum SetupAction {
   Update,
   #[serde(rename = "setup")]
   Setup,
+  #[serde(rename = "removed")]
+  Removed,
 }
 
 #[derive(Deserialize)]
