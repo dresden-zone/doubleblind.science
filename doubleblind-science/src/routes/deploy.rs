@@ -50,7 +50,7 @@ pub(super) async fn github_deploy_webhook(
     }
   };
 
-  match HmacSha256::new_from_slice(b"my secret and secure key") {
+  match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
     Ok(mut mac) => {
       mac.update(raw_body.as_ref());
       let result: &[u8] = &mac.finalize().into_bytes();

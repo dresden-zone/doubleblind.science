@@ -21,6 +21,7 @@ pub(crate) struct DoubleBlindState {
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
   pub project_service: ProjectService,
   pub deployment_service: DeploymentService,
+  pub github_hmac_secret: String
 }
 
 impl DoubleBlindState {
@@ -33,12 +34,15 @@ impl DoubleBlindState {
     github_client_secret_path: &Path,
     website_path: &Path,
     website_domain: &str,
+    github_hmac_secret_file: &Path
   ) -> DoubleBlindState {
     // reading secrets from files
     let database_password = std::fs::read_to_string(password_file)
       .unwrap_or_else(|_| panic!("cannot read password file: {:?}", &password_file));
     let github_client_secret =
       std::fs::read_to_string(github_client_secret_path).expect("cannot read github secret file");
+    let github_hmac_secret =
+        std::fs::read_to_string(github_hmac_secret_file).expect("cannot read github hmac secret file");
 
     let mut db_options = ConnectOptions::new(format!(
       "postgresql://{}:{}@{}/{}",
@@ -86,14 +90,13 @@ impl DoubleBlindState {
 
     DoubleBlindState {
       oauth_github_client: client,
-      //csrf_state: Default::default(),
       sessions: Default::default(),
-      //user_service: UserService::from_db(db.clone()),
       project_service: ProjectService::from_db(db.clone()),
       deployment_service: DeploymentService::new(
         website_path.to_path_buf(),
         website_domain.to_string(),
       ),
+      github_hmac_secret
     }
   }
 }

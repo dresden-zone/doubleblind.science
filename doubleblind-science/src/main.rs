@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
     &args.github_client_secret_file,
     &args.website_path,
     &args.website_domain,
+    &args.github_hmac_secret_file,
   )
   .await;
 

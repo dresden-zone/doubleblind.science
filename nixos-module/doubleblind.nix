@@ -64,11 +64,16 @@ in
           type = types.str;
           description = ''id of oauth with github'';
         };
-         passwordFile = mkOption {
-           type = types.either types.path types.string;
-           default = "";
-           description = ''password file from which the github oauth secret can be read'';
-         };
+        passwordFileClientSecret = mkOption {
+          type = types.either types.path types.string;
+          default = "";
+          description = ''password file from which the github oauth secret can be read'';
+        };
+        passwordFileHMACSecret = mkOption {
+          type = types.either types.path types.string;
+          default = "";
+          description = ''password file from which the github hmac secret can be read'';
+        };
     };
 
     domain = mkOption {
@@ -120,9 +125,10 @@ in
             "DOUBLEBLIND_POSTGRES_DATABASE_NAME" = "${toString cfg.database.database}";
             "DOUBLEBLIND_POSTGRES_PASSWORD_PATH" = "${cfg.database.passwordFile}";
             "DOUBLEBLIND_GITHUB_CLIENT_ID" = "${cfg.github.clientID}";
-            "DOUBLEBLIND_GITHUB_CLIENT_SECRET_PATH" = "${cfg.github.passwordFile}";
+            "DOUBLEBLIND_GITHUB_CLIENT_SECRET_PATH" = "${cfg.github.passwordFileClientSecret}";
             "DOUBLEBLIND_WEBSITE_PATH" = "${cfg.storageLocation}";
             "DOUBLEBLIND_WEBSITE_DOMAIN" = "${cfg.domain}";
+            "DOUBLEBLIND_GITHUB_HMAC_SECRET_PATH" = "${cfg.github.passwordFileHMACSecret}";
           };
 
           serviceConfig = {
