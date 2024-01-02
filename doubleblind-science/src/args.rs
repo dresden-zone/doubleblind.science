@@ -29,6 +29,6 @@ pub(super) struct DoubleBlindArgs {
   pub(super) website_path: PathBuf,
   #[arg(long, env = "DOUBLEBLIND_WEBSITE_DOMAIN")]
   pub(super) website_domain: String,
-  #[arg(long, env = "DOUBLEBLIND_GITHUb_HMAC_SECRET_PATH")]
+  #[arg(long, env = "DOUBLEBLIND_GITHUB_HMAC_SECRET_PATH")]
   pub(super) github_hmac_secret_file: PathBuf,
 }
