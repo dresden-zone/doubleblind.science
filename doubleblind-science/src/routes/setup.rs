@@ -47,7 +47,7 @@ pub(super) struct GithubDispatchEvent {
   //client_payload: serde_json::Value
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 enum SetupAction {
   #[serde(rename = "update")]
   Update,
@@ -57,7 +57,7 @@ enum SetupAction {
   Removed,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub(super) struct GithubAppRegistrationCallback {
   installation_id: i64,
   code: String,
@@ -83,6 +83,8 @@ pub(super) async fn github_setup_webhook(
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
+
+  info!("setup new github project {:?}", &query);
 
   let code = AuthorizationCode::new(query.code.clone());
 
