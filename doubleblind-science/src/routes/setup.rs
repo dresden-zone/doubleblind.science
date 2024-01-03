@@ -79,7 +79,6 @@ pub(super) struct DeploySite {
 pub(super) async fn github_setup_webhook(
   State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
-  jar: CookieJar,
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
@@ -142,6 +141,8 @@ pub(super) async fn github_setup_webhook(
     .http_only(true)
     .max_age(Duration::days(1))
     .finish();
+
+  let jar = CookieJar::new();
 
   Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
