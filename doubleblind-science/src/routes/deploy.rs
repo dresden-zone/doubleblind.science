@@ -1,9 +1,6 @@
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 
-
-
-
 use hmac::{Hmac, Mac};
 
 use serde::{Deserialize, Serialize};
@@ -40,6 +37,7 @@ pub(super) async fn github_deploy_webhook(
   headers: HeaderMap,
   raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
+  /*
   type HmacSha256 = Hmac<Sha256>;
 
   let hash = match headers.get("X-Hub-Signature-256") {
@@ -136,4 +134,6 @@ pub(super) async fn github_deploy_webhook(
     })?;
 
   Ok(StatusCode::OK)
+   */
+  Err(StatusCode::NOT_IMPLEMENTED)
 }

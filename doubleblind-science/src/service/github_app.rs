@@ -1,18 +1,21 @@
+use entity::prelude::Repository;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{RefreshToken, TokenResponse};
+use std::io::repeat;
+use std::result;
 use std::sync::Arc;
 
 use entity::github_app::Model;
 use entity::{github_app, repository};
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
-use sea_orm::ColumnTrait;
 use sea_orm::QueryFilter;
+use sea_orm::{ColumnTrait, NotSet};
 
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-
+use sea_query::{any, Expr};
 
 use time::{Duration, OffsetDateTime};
 
@@ -40,25 +43,27 @@ impl ProjectService {
   pub(crate) async fn create_github_app(
     &self,
     installation_id: i64,
-    refresh_token: &String,
-    refresh_token_expire: OffsetDateTime,
     access_token: &String,
     access_token_expire: OffsetDateTime,
   ) -> anyhow::Result<github_app::Model> {
-    let _github_app_uuid = Uuid::new_v4();
-    Ok(
-      github_app::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        installation_id: Set(installation_id),
-        github_refresh_token: Set(refresh_token.clone()),
-        github_refresh_token_expire: Set(refresh_token_expire),
-        github_access_token: Set(access_token.clone()),
-        github_access_token_expire: Set(access_token_expire),
-        last_update: Default::default(),
-      }
-      .insert(&*self.db)
-      .await?,
-    )
+    match github_app::Entity::find()
+      .filter(github_app::Column::InstallationId.eq(installation_id))
+      .one(&*self.db)
+      .await?
+    {
+      Some(value) => Ok(value),
+      None => Ok(
+        github_app::ActiveModel {
+          id: Set(Uuid::new_v4()),
+          installation_id: Set(installation_id),
+          github_access_token: Set(access_token.clone()),
+          github_access_token_expire: Set(access_token_expire),
+          last_update: Default::default(),
+        }
+        .insert(&*self.db)
+        .await?,
+      ),
+    }
   }
 
   pub(crate) async fn delete(&self, github_app_id: Uuid) -> anyhow::Result<bool> {
@@ -81,8 +86,6 @@ impl ProjectService {
       github_app::ActiveModel {
         id: Unchanged(model.id),
         installation_id: Unchanged(model.installation_id),
-        github_refresh_token: Unchanged(model.github_refresh_token),
-        github_refresh_token_expire: Unchanged(model.github_access_token_expire),
         github_access_token: Set(access_token.clone()),
         github_access_token_expire: Set(access_token_expire),
         last_update: Set(OffsetDateTime::now_utc()),
@@ -92,128 +95,61 @@ impl ProjectService {
     ))
   }
 
-  pub(crate) async fn update_refresh_token(
+  pub(crate) async fn all_repos_for_installation_id(
     &self,
-    model: Model,
-    refresh_token: &String,
-    refresh_token_expire: OffsetDateTime,
-  ) -> anyhow::Result<Option<Model>> {
-    Ok(Some(
-      github_app::ActiveModel {
-        id: Unchanged(model.id),
-        installation_id: Unchanged(model.installation_id),
-        github_refresh_token: Set(refresh_token.clone()),
-        github_refresh_token_expire: Set(refresh_token_expire),
-        github_access_token: Unchanged(model.github_access_token),
-        github_access_token_expire: Unchanged(model.github_access_token_expire),
-        last_update: Set(OffsetDateTime::now_utc()),
+    installation_id: i64,
+  ) -> anyhow::Result<Option<Vec<repository::Model>>> {
+    let found_github_app: entity::github_app::Model = match github_app::Entity::find()
+      .filter(github_app::Column::InstallationId.eq(installation_id))
+      .one(&*self.db)
+      .await?
+    {
+      Some(value) => value,
+      None => {
+        return Ok(None);
       }
-      .update(&*self.db)
-      .await?,
+    };
+
+    Ok(Some(
+      repository::Entity::find()
+        .filter(repository::Column::GithubApp.eq(found_github_app.id))
+        .all(&*self.db)
+        .await?,
     ))
   }
 
-  pub(crate) async fn trust_github_app(&self, github_app_id: Uuid) -> anyhow::Result<bool> {
-    let found_github_app: Option<entity::github_app::Model> =
-      github_app::Entity::find_by_id(github_app_id)
-        .one(&*self.db)
-        .await?;
-    if let Some(github_app) = found_github_app {
-      github_app::ActiveModel {
-        id: Unchanged(github_app_id),
-        installation_id: Unchanged(github_app.installation_id),
-        github_refresh_token: Unchanged(github_app.github_refresh_token),
-        github_refresh_token_expire: Unchanged(github_app.github_refresh_token_expire),
-        github_access_token: Unchanged(github_app.github_access_token),
-        github_access_token_expire: Unchanged(github_app.github_refresh_token_expire),
-        last_update: Set(OffsetDateTime::now_utc()),
-      }
-      .update(&*self.db)
+  pub(crate) async fn rewrite_list_of_repositories(
+    &self,
+    app_id: Uuid,
+    names: Vec<String>,
+  ) -> anyhow::Result<()> {
+    repository::Entity::delete_many()
+      .filter(repository::Column::GithubApp.eq(app_id))
+      .exec(&*self.db)
       .await?;
-      Ok(true)
-    } else {
-      Ok(false)
+
+    Repository::insert_many(names.into_iter().map(|name| repository::ActiveModel {
+      id: Set(Uuid::new_v4()),
+      github_app: Set(app_id),
+      domain: NotSet,
+      github_name: Set(name),
+      trusted: Set(false),
+      deployed: Set(false),
+      created_at: Set(OffsetDateTime::now_utc()),
+      last_update: Set(OffsetDateTime::now_utc()),
+    }))
+    .exec(&*self.db)
+    .await?;
+
+    Ok(())
+  }
+
+  pub(crate) async fn deploy_repo(&self, github_name: String, domain: String) -> anyhow::Result<Vec<repository::Model>> {
+    Ok(Repository::update_many()
+        .col_expr(repository::Column::Deployed, Expr::value(true))
+        .col_expr(repository::Column::Domain, Expr::value(domain))
+        .filter(repository::Column::GithubApp.eq(github_name))
+        .exec_with_returning(&*self.db)
+        .await?)
     }
-  }
-  pub(crate) async fn refresh_tokens(
-    &mut self,
-    mut github_app: Model,
-    oauth_client: &mut BasicClient,
-  ) -> anyhow::Result<Model> {
-    if github_app.github_refresh_token_expire - Duration::days(30) < OffsetDateTime::now_utc()
-      || github_app.github_access_token_expire - Duration::minutes(30) < OffsetDateTime::now_utc()
-    {
-      // updating refresh token
-
-      let value = oauth_client
-        .exchange_refresh_token(&RefreshToken::new(github_app.github_refresh_token.clone()))
-        .request_async(async_http_client)
-        .await?;
-
-      let access_token = value.access_token().secret();
-      let expire_access_token = OffsetDateTime::now_utc()
-        + value
-          .expires_in()
-          .unwrap_or(core::time::Duration::from_secs(60 * 60 * 8));
-
-      self
-        .update_access_token(github_app.clone(), access_token, expire_access_token)
-        .await?;
-
-      github_app.github_access_token = access_token.clone();
-      github_app.github_access_token_expire = expire_access_token;
-
-      match value.refresh_token() {
-        Some(refresh_token) => {
-          let expire_refresh_token = OffsetDateTime::now_utc() + Duration::days(6 * 30);
-          self
-            .update_refresh_token(
-              github_app.clone(),
-              refresh_token.secret(),
-              expire_refresh_token,
-            )
-            .await?;
-          github_app.github_refresh_token = refresh_token.secret().clone();
-          github_app.github_refresh_token_expire = expire_refresh_token;
-        }
-        _ => {}
-      }
-    }
-
-    Ok(github_app)
-  }
-
-  pub(crate) async fn create_repository(
-    &self,
-    github_app: Uuid,
-    domain: String,
-    github_full_name: String,
-  ) -> anyhow::Result<repository::Model> {
-    let repo_uuid = Uuid::new_v4();
-    Ok(
-      repository::ActiveModel {
-        id: Set(repo_uuid),
-        github_app: Set(github_app),
-        domain: Set(domain),
-        github_name: Set(github_full_name),
-        trusted: Set(false),
-        created_at: Set(OffsetDateTime::now_utc()),
-        last_update: Set(OffsetDateTime::now_utc()),
-      }
-      .insert(&*self.db)
-      .await?,
-    )
-  }
-
-  pub(crate) async fn get_repository(
-    &self,
-    github_full_name: String,
-  ) -> anyhow::Result<Option<repository::Model>> {
-    Ok(
-      repository::Entity::find()
-        .filter(repository::Column::GithubName.eq(github_full_name))
-        .one(&*self.db)
-        .await?,
-    )
-  }
 }

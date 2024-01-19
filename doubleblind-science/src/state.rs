@@ -14,14 +14,16 @@ use migration::{Migrator, MigratorTrait};
 use crate::auth::SessionData;
 use crate::service::deploy::DeploymentService;
 use crate::service::github_app::ProjectService;
+use crate::service::token::TokenService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
   pub oauth_github_client: BasicClient,
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
   pub project_service: ProjectService,
+  pub token_service: TokenService,
   pub deployment_service: DeploymentService,
-  pub github_hmac_secret: String
+  pub github_hmac_secret: String,
 }
 
 impl DoubleBlindState {
@@ -34,15 +36,16 @@ impl DoubleBlindState {
     github_client_secret_path: &Path,
     website_path: &Path,
     website_domain: &str,
-    github_hmac_secret_file: &Path
+    github_hmac_secret_file: &Path,
+    github_private_key_file: &Path,
   ) -> DoubleBlindState {
     // reading secrets from files
     let database_password = std::fs::read_to_string(password_file)
       .unwrap_or_else(|_| panic!("cannot read password file: {:?}", &password_file));
     let github_client_secret =
       std::fs::read_to_string(github_client_secret_path).expect("cannot read github secret file");
-    let github_hmac_secret =
-        std::fs::read_to_string(github_hmac_secret_file).expect("cannot read github hmac secret file");
+    let github_hmac_secret = std::fs::read_to_string(github_hmac_secret_file)
+      .expect("cannot read github hmac secret file");
 
     let mut db_options = ConnectOptions::new(format!(
       "postgresql://{}:{}@{}/{}",
@@ -96,7 +99,8 @@ impl DoubleBlindState {
         website_path.to_path_buf(),
         website_domain.to_string(),
       ),
-      github_hmac_secret
+      token_service: TokenService::new(github_client_id.to_string(), github_private_key_file),
+      github_hmac_secret,
     }
   }
 }

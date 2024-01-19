@@ -11,7 +11,7 @@ mod setup;
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
   Router::new()
-    .route("/v1/github/hooks/deploy", get(github_deploy_webhook))
+    .route("/v1/github/hooks/deploy", post(github_deploy_webhook))
     .route("/v1/github/hooks/setup", post(github_setup_webhook))
     .route("/v1/github/repos", get(github_app_repositories))
     .route("/v1/github/deploy", post(github_app_repositories))

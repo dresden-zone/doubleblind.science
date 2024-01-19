@@ -15,8 +15,6 @@ impl MigrationTrait for Migration {
       CREATE TABLE github_app (
         id UUID PRIMARY KEY,
         installation_id BIGINT NOT NULL,
-        github_refresh_token TEXT NOT NULL,
-        github_refresh_token_expire TIMESTAMPTZ NOT NULL,
         github_access_token TEXT NOT NULL,
         github_access_token_expire TIMESTAMPTZ NOT NULL,
         last_update TIMESTAMPTZ NOT NULL
@@ -25,11 +23,12 @@ impl MigrationTrait for Migration {
       CREATE TABLE repository (
         id UUID PRIMARY KEY,
         github_app UUID NOT NULL REFERENCES github_app(id),
-        domain TEXT NOT NULL,
+        domain TEXT,
         github_name TEXT NOT NULL,
         trusted BOOL NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL,
-        last_update TIMESTAMPTZ NOT NULL
+        deployed BOOL NOT NULL,
+        last_update TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL
       );
     "#,
     )

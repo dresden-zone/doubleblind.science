@@ -10,9 +10,6 @@ pub struct Model {
   pub id: Uuid,
   pub installation_id: i64,
   #[sea_orm(column_type = "Text")]
-  pub github_refresh_token: String,
-  pub github_refresh_token_expire: TimeDateTimeWithTimeZone,
-  #[sea_orm(column_type = "Text")]
   pub github_access_token: String,
   pub github_access_token_expire: TimeDateTimeWithTimeZone,
   pub last_update: TimeDateTimeWithTimeZone,

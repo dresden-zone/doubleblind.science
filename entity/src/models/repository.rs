@@ -9,13 +9,14 @@ pub struct Model {
   #[sea_orm(primary_key, auto_increment = false)]
   pub id: Uuid,
   pub github_app: Uuid,
-  #[sea_orm(column_type = "Text")]
-  pub domain: String,
+  #[sea_orm(column_type = "Text", nullable)]
+  pub domain: Option<String>,
   #[sea_orm(column_type = "Text")]
   pub github_name: String,
   pub trusted: bool,
-  pub created_at: TimeDateTimeWithTimeZone,
+  pub deployed: bool,
   pub last_update: TimeDateTimeWithTimeZone,
+  pub created_at: TimeDateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
