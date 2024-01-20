@@ -72,7 +72,7 @@ impl TokenService {
     Ok(
       client
         .post(format!(
-          "api.github.com/app/installation/{installation_id}/access_tokens"
+          "https://api.github.com/app/installations/{installation_id}/access_tokens"
         ))
         .bearer_auth(&self.jwt)
         .header("Accept", "application/vnd.github+json")
