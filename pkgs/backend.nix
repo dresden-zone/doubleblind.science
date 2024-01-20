@@ -1,4 +1,4 @@
-{  buildPackage, lib, pkg-config, openssl }:
+{  buildPackage, lib, pkg-config, openssl, boringssl }:
 buildPackage {
   pname = "doubleblind-backend";
   version = "0.1.0";
@@ -8,7 +8,7 @@ buildPackage {
   cargoSha256 = lib.fakeSha256;
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ openssl ];
+  buildInputs = [ boringssl ];
 
   meta = {
     description = "service which promotes open science and helps with publishing artifacts";
