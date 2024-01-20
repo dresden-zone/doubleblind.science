@@ -11,9 +11,10 @@ use time::OffsetDateTime;
 
 #[derive(Serialize)]
 struct Claims {
-  iss: String,
+  iss: i64,
   iat: i64,
   exp: i64,
+  alg: String
 }
 
 #[derive(Clone)]
@@ -46,12 +47,13 @@ impl TokenService {
 
     let now = Local::now();
     let iat = now.timestamp();
-    let exp = (now + Duration::hours(1)).timestamp();
+    let exp = (now + Duration::minutes(8)).timestamp();
 
     let claims = Claims {
-      iss: client_id.clone(),
+      iss: client_id.clone().parse::<i64>()?,
       iat,
       exp,
+      alg: "RS256".to_string()
     };
 
     let jwt = encode(
