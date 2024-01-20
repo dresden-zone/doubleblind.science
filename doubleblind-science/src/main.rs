@@ -1,8 +1,15 @@
 use axum::Server;
 use clap::Parser;
+use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tower_http::cors::CorsLayer;
-use tracing::{error, info, Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing::{error, info, Level, Span};
+use tracing_subscriber::{filter, FmtSubscriber};
+use axum::{
+  http::{Request, Uri},
+  middleware::Next,
+  response::Response,
+};
+use std::time::Duration;
 
 use crate::args::DoubleBlindArgs;
 use crate::routes::route;
@@ -15,12 +22,14 @@ pub mod service;
 mod state;
 pub mod structs;
 
+struct RequestUri(Uri);
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
   let args = DoubleBlindArgs::parse();
 
   let subscriber = FmtSubscriber::builder()
-    .with_max_level(Level::INFO)
+    .with_max_level(Level::TRACE)
     .compact()
     .finish();
 
@@ -49,7 +58,26 @@ async fn main() -> anyhow::Result<()> {
   )
   .await;
 
-  let router = route().layer(cors).with_state(state);
+  let router = route()
+      .layer(cors)
+      .layer(
+        TraceLayer::new_for_http()
+            .on_response(|response: &Response, _latency: Duration, _span: &Span| {
+              println!(
+                "Success: {:?}",
+                response.extensions().get::<RequestUri>().map(|r| &r.0)
+              )
+            })
+            .on_failure(
+              |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
+                println!(
+                  "Error: {:?}",
+                  _error
+                )
+              },
+            ),
+      )
+      .with_state(state);
   let server = Server::bind(&args.listen_addr).serve(router.into_make_service());
 
   info!("Listening on http://{}...", server.local_addr());

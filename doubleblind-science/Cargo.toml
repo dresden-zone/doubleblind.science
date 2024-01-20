@@ -12,7 +12,7 @@ tokio = { version = "1.34", default-features = false, features = ["macros", "rt-
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
 async-compression = { version = "0.4", default-features = false, features = ["tokio", "gzip"] }
 tracing = { version = "0.1", default-features = false, features = ["release_max_level_info"] }
-tower-http = { version = "0.4", default-features = false, features = ["cors"] }
+tower-http = { version = "0.4", default-features = false, features = ["cors", "trace"] }
 uuid = { version = "1.6", default-features = false, features = ["v4", "serde"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 tokio-util = { version = "0.7", default-features = false, features = ["io"] }
