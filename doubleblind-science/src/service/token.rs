@@ -14,7 +14,6 @@ struct Claims {
   iss: i64,
   iat: i64,
   exp: i64,
-  alg: String
 }
 
 #[derive(Clone)]
@@ -53,7 +52,6 @@ impl TokenService {
       iss: client_id.clone().parse::<i64>()?,
       iat,
       exp,
-      alg: "RS256".to_string()
     };
 
     let jwt = encode(
