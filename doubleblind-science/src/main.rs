@@ -62,10 +62,14 @@ async fn main() -> anyhow::Result<()> {
       .layer(cors)
       .layer(
         TraceLayer::new_for_http()
+            .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
+              tracing::info!("URI: {:?} METHOD: {:?} HEADERS: {:?}", request.uri(), request.method(), request.headers());
+            })
             .on_response(|response: &Response, _latency: Duration, _span: &Span| {
               println!(
-                "Success: {:?}",
-                response.extensions().get::<RequestUri>().map(|r| &r.0)
+                "Success: HEADER: {:?} BODY: {:?}",
+                response.headers(),
+                response.body(),
               )
             })
             .on_failure(

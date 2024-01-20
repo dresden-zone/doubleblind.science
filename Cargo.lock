@@ -651,6 +651,7 @@ dependencies = [
  "entity",
  "futures-util",
  "hmac",
+ "hyper",
  "jsonwebtoken",
  "jwt-simple",
  "migration",
