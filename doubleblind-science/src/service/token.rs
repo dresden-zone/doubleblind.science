@@ -21,7 +21,7 @@ pub struct TokenService {
   jwt: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct RequestAccessTokens {
   repositories: Vec<String>,
   permissions: HashMap<&'static str, &'static str>,
@@ -68,7 +68,12 @@ impl TokenService {
     repositories: Vec<String>,
   ) -> anyhow::Result<ResponseAccessTokens> {
     let client = Client::new();
+    let request_body = &RequestAccessTokens {
+      repositories,
+      permissions: HashMap::from([("repository_hooks", "write"), ("contents", "read")]),
+    };
 
+    println!("DEBUG {:?} \nJWT {}", &request_body, &self.jwt);
     Ok(
       client
         .post(format!(
@@ -77,10 +82,7 @@ impl TokenService {
         .bearer_auth(&self.jwt)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
-        .json(&RequestAccessTokens {
-          repositories,
-          permissions: HashMap::from([("repository_hooks", "write"), ("content", "read")]),
-        })
+        .json(&request_body)
         .send()
         .await?
         .error_for_status()?
