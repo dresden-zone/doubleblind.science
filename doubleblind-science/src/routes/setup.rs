@@ -100,18 +100,25 @@ pub(super) async fn github_setup_webhook(
 
   // parsing json body from github
   let parsed_request: GithubWebhookSetup =
-    serde_json::from_str(&raw_body).map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+    serde_json::from_str(&raw_body).map_err(|e| {
+      error!("cannot parse request body from github {} {:?}", &raw_body,  e);
+      Redirect::to(ERROR_REDIRECT)
+    })?;
 
   // look which repositories are already known
   let already_installed_repos: Vec<String> = match state
     .project_service
     .all_repos_for_installation_id(query.installation_id)
     .await
-    .map_err(|_| Redirect::to(ERROR_REDIRECT))?
+    .map_err(|e| {
+      error!("error all repos with this installation id {e}");
+      Redirect::to(ERROR_REDIRECT)
+    })?
   {
     Some(values) => values.into_iter().map(|x| x.github_name).collect(),
     None => {
-      return Err(Redirect::to(ERROR_REDIRECT));
+      info!("no values previous installed repos");
+      Vec::new()
     }
   };
 
@@ -133,7 +140,10 @@ pub(super) async fn github_setup_webhook(
     .token_service
     .fetch_access_tokens_repo(query.installation_id, repos_with_permissions.clone())
     .await
-    .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+    .map_err(|e| {
+      error!("error while trying to fetch access token {e}");
+      Redirect::to(ERROR_REDIRECT)
+    })?;
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
@@ -157,7 +167,10 @@ pub(super) async fn github_setup_webhook(
     .project_service
     .rewrite_list_of_repositories(github_app_db.id, repos_with_permissions)
     .await
-    .map_err(|_| Redirect::to(ERROR_REDIRECT))?;
+    .map_err(|e| {
+      error!("error while trying to rewrite repo list {e}");
+      Redirect::to(ERROR_REDIRECT)
+    })?;
 
   let session_id = Uuid::new_v4();
   let session_data = SessionData {
