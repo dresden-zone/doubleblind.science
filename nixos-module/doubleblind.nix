@@ -74,6 +74,11 @@ in
           default = "";
           description = ''password file from which the github hmac secret can be read'';
         };
+        privateKeyFile = mkOption {
+            type = types.either types.path types.string;
+            default = "";
+            description = ''privatekey from github for signing'';
+        };
     };
 
     domain = mkOption {
@@ -129,6 +134,7 @@ in
             "DOUBLEBLIND_WEBSITE_PATH" = "${cfg.storageLocation}";
             "DOUBLEBLIND_WEBSITE_DOMAIN" = "${cfg.domain}";
             "DOUBLEBLIND_GITHUB_HMAC_SECRET_PATH" = "${cfg.github.passwordFileHMACSecret}";
+            "DOUBLEBLIND_GITHUB_PRIVATE_KEY_PATH" = "${cfg.github.privateKeyFile}";
           };
 
           serviceConfig = {

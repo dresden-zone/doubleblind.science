@@ -1,4 +1,3 @@
-use axum::response::Response;
 use chrono::prelude::*;
 use chrono::Duration;
 use core::result::Result;
@@ -7,7 +6,7 @@ use jwt_simple::prelude::{Deserialize, Serialize};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use time::OffsetDateTime;
 
 #[derive(Serialize)]
@@ -60,7 +59,7 @@ impl TokenService {
       &claims,
       &EncodingKey::from_rsa_pem(private_key.as_bytes())?,
     )?;
-    return Ok(jwt);
+    Ok(jwt)
   }
 
   pub async fn fetch_access_tokens_repo(

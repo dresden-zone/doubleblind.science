@@ -3,8 +3,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use oauth2::basic::BasicClient;
-use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sea_orm::{ConnectOptions, Database};
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -18,7 +16,6 @@ use crate::service::token::TokenService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
-  pub oauth_github_client: BasicClient,
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
   pub project_service: ProjectService,
   pub token_service: TokenService,
@@ -33,7 +30,6 @@ impl DoubleBlindState {
     host: &str,
     database: &str,
     github_client_id: &str,
-    github_client_secret_path: &Path,
     website_path: &Path,
     website_domain: &str,
     github_hmac_secret_file: &Path,
@@ -42,8 +38,6 @@ impl DoubleBlindState {
     // reading secrets from files
     let database_password = std::fs::read_to_string(password_file)
       .unwrap_or_else(|_| panic!("cannot read password file: {:?}", &password_file));
-    let github_client_secret =
-      std::fs::read_to_string(github_client_secret_path).expect("cannot read github secret file");
     let github_hmac_secret = std::fs::read_to_string(github_hmac_secret_file)
       .expect("cannot read github hmac secret file");
 
@@ -69,30 +63,7 @@ impl DoubleBlindState {
       .await
       .expect("cannot run migrations");
 
-    // adding parsing information required to talk to github api
-    let parsed_github_client_id = ClientId::new(github_client_id.to_string());
-    let parsed_github_secret = ClientSecret::new(github_client_secret);
-
-    // urls how to talk to github oauth
-    let auth_url = AuthUrl::new("https://github.com/login/oauth/authorize".to_string())
-      .expect("Invalid authorization endpoint URL");
-    let token_url = TokenUrl::new("https://github.com/login/oauth/access_token".to_string())
-      .expect("Invalid token endpoint URL");
-
-    // Set up the config for the Github OAuth2 process.
-    let client = BasicClient::new(
-      parsed_github_client_id,
-      Some(parsed_github_secret),
-      auth_url,
-      Some(token_url),
-    )
-    .set_redirect_uri(
-      RedirectUrl::new("https://api.science.tanneberger.me/auth/callback/github".to_string())
-        .expect("Invalid redirect URL"),
-    );
-
     DoubleBlindState {
-      oauth_github_client: client,
       sessions: Default::default(),
       project_service: ProjectService::from_db(db.clone()),
       deployment_service: DeploymentService::new(

@@ -23,8 +23,6 @@ pub(super) struct DoubleBlindArgs {
   pub(super) database_name: String,
   #[arg(long, env = "DOUBLEBLIND_GITHUB_CLIENT_ID")]
   pub(super) github_client_id: String,
-  #[arg(long, env = "DOUBLEBLIND_GITHUB_CLIENT_SECRET_PATH")]
-  pub(super) github_client_secret_file: PathBuf,
   #[arg(long, env = "DOUBLEBLIND_WEBSITE_PATH")]
   pub(super) website_path: PathBuf,
   #[arg(long, env = "DOUBLEBLIND_WEBSITE_DOMAIN")]

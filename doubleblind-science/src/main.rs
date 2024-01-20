@@ -42,7 +42,6 @@ async fn main() -> anyhow::Result<()> {
     &args.database_host,
     &args.database_name,
     &args.github_client_id,
-    &args.github_client_secret_file,
     &args.website_path,
     &args.website_domain,
     &args.github_hmac_secret_file,

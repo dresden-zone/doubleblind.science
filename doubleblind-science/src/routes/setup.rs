@@ -8,16 +8,14 @@ use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
 };
-use clap::builder::styling::AnsiColor::Red;
-use entity::prelude::Repository;
-use jwt_simple::algorithms::{HS256Key, MACLike};
-use jwt_simple::claims::Claims;
-use oauth2::{reqwest::async_http_client, AuthorizationCode, TokenResponse};
+
+use jwt_simple::algorithms::MACLike;
+
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
-use time::{Duration, OffsetDateTime};
+use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -92,7 +90,7 @@ pub(super) struct GithubWebhookSetup {
 pub(super) async fn github_setup_webhook(
   State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
-  headers: HeaderMap,
+  _headers: HeaderMap,
   raw_body: String,
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
@@ -188,10 +186,10 @@ pub(super) async fn github_setup_webhook(
 
 pub async fn github_app_repositories(
   Session(session): Session,
-  State(mut state): State<DoubleBlindState>,
+  State(state): State<DoubleBlindState>,
   _jar: CookieJar,
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
-  let mut github_app = match state
+  let github_app = match state
     .project_service
     .get_github_app(session.github_app)
     .await
@@ -239,11 +237,11 @@ pub async fn github_app_repositories(
 
 pub async fn github_app_deploy_website(
   Session(session): Session,
-  State(mut state): State<DoubleBlindState>,
+  State(state): State<DoubleBlindState>,
   Json(data): Json<DeploySite>,
   _jar: CookieJar,
 ) -> Result<StatusCode, StatusCode> {
-  let mut github_app = match state
+  let github_app = match state
     .project_service
     .get_github_app(session.github_app)
     .await

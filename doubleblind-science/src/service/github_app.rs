@@ -1,9 +1,4 @@
 use entity::prelude::Repository;
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
-use oauth2::{RefreshToken, TokenResponse};
-use std::io::repeat;
-use std::result;
 use std::sync::Arc;
 
 use entity::github_app::Model;
@@ -15,10 +10,8 @@ use sea_orm::{ColumnTrait, NotSet};
 
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-use sea_query::{any, Expr};
-
-use time::{Duration, OffsetDateTime};
-
+use sea_query::Expr;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -144,12 +137,18 @@ impl ProjectService {
     Ok(())
   }
 
-  pub(crate) async fn deploy_repo(&self, github_name: String, domain: String) -> anyhow::Result<Vec<repository::Model>> {
-    Ok(Repository::update_many()
+  pub(crate) async fn deploy_repo(
+    &self,
+    github_name: String,
+    domain: String,
+  ) -> anyhow::Result<Vec<repository::Model>> {
+    Ok(
+      Repository::update_many()
         .col_expr(repository::Column::Deployed, Expr::value(true))
         .col_expr(repository::Column::Domain, Expr::value(domain))
         .filter(repository::Column::GithubApp.eq(github_name))
         .exec_with_returning(&*self.db)
-        .await?)
-    }
+        .await?,
+    )
+  }
 }

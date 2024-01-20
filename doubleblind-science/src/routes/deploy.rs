@@ -1,12 +1,7 @@
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 
-use hmac::{Hmac, Mac};
-
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-
-use tracing::{error, info};
 
 use crate::state::DoubleBlindState;
 
@@ -33,9 +28,9 @@ pub(super) struct GithubWebhookRequest {
 }
 
 pub(super) async fn github_deploy_webhook(
-  State(mut state): State<DoubleBlindState>,
-  headers: HeaderMap,
-  raw_body: String,
+  State(_state): State<DoubleBlindState>,
+  _headers: HeaderMap,
+  _raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
   /*
   type HmacSha256 = Hmac<Sha256>;
