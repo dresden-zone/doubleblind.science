@@ -1,4 +1,4 @@
-use crate::routes::setup::{github_app_repositories, github_setup_webhook};
+use crate::routes::setup::{github_app_repositories, github_create_installation, github_forward_user};
 use axum::routing::{get, post};
 use axum::Router;
 
@@ -12,7 +12,8 @@ mod setup;
 pub(crate) fn route() -> Router<DoubleBlindState> {
   Router::new()
     .route("/v1/github/hooks/deploy", post(github_deploy_webhook))
-    .route("/v1/github/hooks/setup", post(github_setup_webhook))
+    .route("/v1/github/hooks/setup", post(github_create_installation))
+    .route("/v1/github/hooks/setup", get(github_forward_user))
     .route("/v1/github/repos", get(github_app_repositories))
     .route("/v1/github/deploy", post(github_app_repositories))
 }

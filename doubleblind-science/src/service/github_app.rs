@@ -10,6 +10,7 @@ use sea_orm::{ColumnTrait, NotSet};
 
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use sea_query::ColumnRef::Column;
 use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -29,8 +30,8 @@ impl ProjectService {
   ) -> anyhow::Result<Vec<github_app::Model>> {
     Ok(github_app::Entity::find().all(&*self.db).await?)
   }
-  pub(crate) async fn get_github_app(&self, id: Uuid) -> anyhow::Result<Option<github_app::Model>> {
-    Ok(github_app::Entity::find_by_id(id).one(&*self.db).await?)
+  pub(crate) async fn get_github_app(&self, installation_id: i64) -> anyhow::Result<Option<github_app::Model>> {
+    Ok(github_app::Entity::find().filter(github_app::Column::InstallationId.eq(installation_id)).one(&*self.db).await?)
   }
 
   pub(crate) async fn create_github_app(

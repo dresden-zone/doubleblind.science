@@ -82,37 +82,75 @@ pub(super) struct DeploySite {
 }
 
 #[derive(Deserialize)]
+pub(super) struct InstallationInformation {
+  id: i64
+}
+
+#[derive(Deserialize)]
 pub(super) struct GithubWebhookSetup {
+  installation: InstallationInformation,
   repositories_added: Vec<RepoInformation>,
   repositories_removed: Vec<RepoInformation>,
 }
 
-pub(super) async fn github_setup_webhook(
+pub(super) async fn github_forward_user(
   State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
   _headers: HeaderMap,
-  raw_body: String,
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
+  let session_id = Uuid::new_v4();
 
-  info!("setup new github project {:?}", &query);
+  let session_data = SessionData {
+    installation_id: query.installation_id
+  };
+
+  state
+      .sessions
+      .write()
+      .await
+      .insert(session_id, Arc::new(session_data));
+
+  let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
+      .domain("api.science.tanneberger.me")
+      .same_site(SameSite::Lax)
+      .path("/")
+      .secure(true)
+      .http_only(true)
+      .max_age(Duration::days(1))
+      .finish();
+
+  let jar = CookieJar::new();
+
+  Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
+}
+pub(super) async fn github_create_installation(
+  State(state): State<DoubleBlindState>,
+  //Query(query): Query<GithubAppRegistrationCallback>,
+  _headers: HeaderMap,
+  raw_body: String,
+) -> Result<StatusCode, StatusCode> {
+
+
+  info!("setup new github project");
 
   // parsing json body from github
   let parsed_request: GithubWebhookSetup =
     serde_json::from_str(&raw_body).map_err(|e| {
       error!("cannot parse request body from github {} {:?}", &raw_body,  e);
-      Redirect::to(ERROR_REDIRECT)
-    })?;
+      StatusCode::BAD_REQUEST
+  })?;
 
   // look which repositories are already known
   let already_installed_repos: Vec<String> = match state
     .project_service
-    .all_repos_for_installation_id(query.installation_id)
+    .all_repos_for_installation_id(parsed_request.installation.id)
     .await
     .map_err(|e| {
       error!("error all repos with this installation id {e}");
-      Redirect::to(ERROR_REDIRECT)
+
+      StatusCode::INTERNAL_SERVER_ERROR
     })?
   {
     Some(values) => values.into_iter().map(|x| x.github_name).collect(),
@@ -138,18 +176,19 @@ pub(super) async fn github_setup_webhook(
   // get a new access token for this set of repos
   let access_token: ResponseAccessTokens = state
     .token_service
-    .fetch_access_tokens_repo(query.installation_id, repos_with_permissions.clone())
+    .fetch_access_tokens_repo(parsed_request.installation.id, repos_with_permissions.clone())
     .await
     .map_err(|e| {
       error!("error while trying to fetch access token {e}");
-      Redirect::to(ERROR_REDIRECT)
+
+      StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
     .project_service
     .create_github_app(
-      query.installation_id,
+      parsed_request.installation.id,
       &access_token.token,
       access_token.expires_at,
     )
@@ -158,7 +197,8 @@ pub(super) async fn github_setup_webhook(
     Ok(value) => value,
     Err(e) => {
       error!("error when trying to create github app {e}");
-      return Err(Redirect::to(ERROR_REDIRECT));
+
+      return Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
   };
 
@@ -169,32 +209,11 @@ pub(super) async fn github_setup_webhook(
     .await
     .map_err(|e| {
       error!("error while trying to rewrite repo list {e}");
-      Redirect::to(ERROR_REDIRECT)
+
+      StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-  let session_id = Uuid::new_v4();
-  let session_data = SessionData {
-    github_app: github_app_db.id,
-  };
-
-  state
-    .sessions
-    .write()
-    .await
-    .insert(session_id, Arc::new(session_data));
-
-  let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
-    .domain("api.science.tanneberger.me")
-    .same_site(SameSite::Lax)
-    .path("/")
-    .secure(true)
-    .http_only(true)
-    .max_age(Duration::days(1))
-    .finish();
-
-  let jar = CookieJar::new();
-
-  Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
+  Ok(StatusCode::OK)
 }
 
 pub async fn github_app_repositories(
@@ -204,7 +223,7 @@ pub async fn github_app_repositories(
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
   let github_app = match state
     .project_service
-    .get_github_app(session.github_app)
+    .get_github_app(session.installation_id)
     .await
   {
     Ok(Some(value)) => value,
@@ -256,7 +275,7 @@ pub async fn github_app_deploy_website(
 ) -> Result<StatusCode, StatusCode> {
   let github_app = match state
     .project_service
-    .get_github_app(session.github_app)
+    .get_github_app(session.installation_id)
     .await
   {
     Ok(Some(value)) => value,
