@@ -1,6 +1,4 @@
-use crate::routes::setup::{
-  github_app_repositories, github_create_installation, github_forward_user,
-};
+use crate::routes::setup::{github_app_deploy_website, github_app_repositories, github_create_installation, github_forward_user};
 use axum::routing::{get, post};
 use axum::Router;
 use jwt_simple::prelude::{Deserialize, Serialize};
@@ -26,5 +24,5 @@ pub(crate) fn route() -> Router<DoubleBlindState> {
     .route("/v1/github/hooks/setup", post(github_create_installation))
     .route("/v1/github/hooks/setup", get(github_forward_user))
     .route("/v1/github/repos", get(github_app_repositories))
-    .route("/v1/github/deploy", post(github_app_repositories))
+    .route("/v1/github/deploy", post(github_app_deploy_website))
 }

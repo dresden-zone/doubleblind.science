@@ -12,7 +12,7 @@ use crate::routes::RepoInformation;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 
-use sea_query::Expr;
+use sea_query::{any, Expr};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -40,6 +40,15 @@ impl ProjectService {
         .filter(github_app::Column::InstallationId.eq(installation_id))
         .one(&*self.db)
         .await?,
+    )
+  }
+
+  pub(crate) async fn get_github_app_uuid(
+    &self,
+    id: Uuid,
+  ) -> anyhow::Result<Option<Model>> {
+    Ok(
+      github_app::Entity::find_by_id(id).one(&*self.db).await?
     )
   }
 
@@ -77,6 +86,16 @@ impl ProjectService {
         .rows_affected
         > 0,
     )
+  }
+
+  pub(crate) async fn get_repository(
+    &self,
+    id: i64
+  ) -> anyhow::Result<Option<repository::Model>> {
+    Ok(repository::Entity::find()
+        .filter(repository::Column::GithubId.eq(id))
+        .one(&*self.db)
+        .await?)
   }
 
   pub(crate) async fn update_access_token(
@@ -151,14 +170,14 @@ impl ProjectService {
 
   pub(crate) async fn deploy_repo(
     &self,
-    github_name: String,
+    github_id: i64,
     domain: String,
   ) -> anyhow::Result<Vec<repository::Model>> {
     Ok(
       Repository::update_many()
         .col_expr(repository::Column::Deployed, Expr::value(true))
         .col_expr(repository::Column::Domain, Expr::value(domain))
-        .filter(repository::Column::GithubApp.eq(github_name))
+        .filter(repository::Column::GithubId.eq(github_id))
         .exec_with_returning(&*self.db)
         .await?,
     )

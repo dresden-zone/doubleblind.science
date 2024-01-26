@@ -1,9 +1,5 @@
 use axum::http::HeaderMap;
-use axum::{
-  extract::{Json, Query, State},
-  http::StatusCode,
-  response::Redirect,
-};
+use axum::{debug_handler, extract::{Json, Query, State}, http::StatusCode, response::Redirect};
 use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
@@ -18,6 +14,7 @@ use std::sync::Arc;
 use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
+use entity::repository::Model;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::routes::RepoInformation;
@@ -72,7 +69,7 @@ pub(super) struct ListOfRepos {
 #[derive(Deserialize)]
 pub(super) struct DeploySite {
   domain: String,
-  full_name: String,
+  github_id: i64,
 }
 
 #[derive(Deserialize)]
@@ -257,8 +254,8 @@ pub async fn github_app_repositories(
 pub async fn github_app_deploy_website(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
-  Json(data): Json<DeploySite>,
   _jar: CookieJar,
+  Json(data): Json<DeploySite>,
 ) -> Result<StatusCode, StatusCode> {
   let github_app = match state
     .project_service
@@ -276,14 +273,20 @@ pub async fn github_app_deploy_website(
     }
   };
 
-  state
+  let repo =
+     match state
     .project_service
-    .deploy_repo(data.full_name.clone(), data.domain)
+    .deploy_repo(data.github_id.clone(), data.domain)
     .await
     .map_err(|e| {
       error!("cannot create repository {e}");
       StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    })?.get(0) {
+       None => {
+         return Err(StatusCode::NOT_FOUND);
+       }
+       Some(value) => value.clone()
+     };
 
   // triggering deployment via github webhook
   let client = Client::new();
@@ -291,13 +294,10 @@ pub async fn github_app_deploy_website(
     client
       .get(format!(
         "https://api.github.com/repos/{}/dispatches",
-        &data.full_name
+        &repo.github_full_name
       ))
       .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .header(
-        reqwest::header::AUTHORIZATION,
-        format!("Bearer {}", github_app.github_access_token.clone()),
-      )
+      .bearer_auth(github_app.github_access_token.clone())
       .header("X-GitHub-Api-Version", "2022-11-28")
       .header(reqwest::header::USER_AGENT, "doubleblind-science")
       .json(&GithubDispatchEvent {

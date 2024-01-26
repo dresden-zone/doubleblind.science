@@ -1,7 +1,11 @@
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
+use hmac::{Hmac, Mac};
 
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
+use tracing::{error, info};
+use crate::service::token::ResponseAccessTokens;
 
 use crate::state::DoubleBlindState;
 
@@ -28,11 +32,10 @@ pub(super) struct GithubWebhookRequest {
 }
 
 pub(super) async fn github_deploy_webhook(
-  State(_state): State<DoubleBlindState>,
-  _headers: HeaderMap,
-  _raw_body: String,
+  State(state): State<DoubleBlindState>,
+  headers: HeaderMap,
+  raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
-  /*
   type HmacSha256 = Hmac<Sha256>;
 
   let hash = match headers.get("X-Hub-Signature-256") {
@@ -69,7 +72,7 @@ pub(super) async fn github_deploy_webhook(
 
   let repository = match state
     .project_service
-    .get_repository(data.repository.full_name.clone())
+    .get_repository(data.repository.id)
     .await
   {
     Ok(Some(value)) => value,
@@ -86,9 +89,20 @@ pub(super) async fn github_deploy_webhook(
     }
   };
 
+  if !repository.deployed {
+    return Err(StatusCode::BAD_REQUEST);
+  }
+
+  let domain = match repository.domain {
+    None => {
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    Some(value) => value
+  };
+
   let mut github_app = match state
     .project_service
-    .get_github_app(repository.github_app)
+    .get_github_app_uuid(repository.github_app)
     .await
   {
     Ok(Some(value)) => value,
@@ -101,26 +115,43 @@ pub(super) async fn github_deploy_webhook(
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
-
-  github_app = match state
-    .project_service
-    .refresh_tokens(github_app, &mut state.oauth_github_client)
-    .await
-  {
-    Ok(value) => value,
+  let repos = match state.project_service.all_repos_for_installation_id(github_app.installation_id).await {
+    Ok(Some(value)) => value,
     Err(e) => {
-      error!("cannot refresh github tokens with error {e}");
+      error!("cannot fetch repos for id {e}");
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    },
+    Ok(None) => {
+      error!("cannot fetch all repos");
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
 
+  let access_token: ResponseAccessTokens = state
+      .token_service
+      .fetch_access_tokens_repo(
+        github_app.installation_id,
+        repos
+            .iter()
+            .map(|x| x.github_short_name.clone())
+            .collect(),
+      )
+      .await
+      .map_err(|e| {
+        error!("error while trying to fetch access token {e}");
+
+        StatusCode::INTERNAL_SERVER_ERROR
+      })?;
+
+
+
   state
     .deployment_service
     .deploy(
-      &repository.github_name,
+      &repository.github_full_name,
       &github_app.github_access_token,
       &data.after,
-      repository.domain,
+      domain,
     )
     .await
     .map_err(|e| {
@@ -129,6 +160,4 @@ pub(super) async fn github_deploy_webhook(
     })?;
 
   Ok(StatusCode::OK)
-   */
-  Err(StatusCode::NOT_IMPLEMENTED)
 }
