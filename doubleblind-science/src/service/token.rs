@@ -2,11 +2,12 @@ use chrono::prelude::*;
 use chrono::Duration;
 use core::result::Result;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use jwt_simple::prelude::{Deserialize, Serialize};
+use jwt_simple::prelude::{Deserialize, RS256KeyPair, RSAKeyPairLike, Serialize, UnixTimeStamp};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
+use jwt_simple::claims::JWTClaims;
 use time::OffsetDateTime;
 
 #[derive(Serialize)]
@@ -48,18 +49,27 @@ impl TokenService {
     let iat = now.timestamp();
     let exp = (now + Duration::minutes(8)).timestamp();
 
-    let claims = Claims {
-      iss: client_id.clone().parse::<i64>()?,
-      iat,
-      exp,
+    let claims = JWTClaims{
+      issued_at: Some(UnixTimeStamp::from_secs(iat as u64)),
+      expires_at: Some(UnixTimeStamp::from_secs(exp as u64)),
+      invalid_before: None,
+      issuer: Some(client_id),
+      subject: None,
+      audiences: None,
+      jwt_id: None,
+      nonce: None,
+      custom: (),
     };
 
-    let jwt = encode(
-      &header,
-      &claims,
-      &EncodingKey::from_rsa_pem(private_key.as_bytes())?,
-    )?;
-    Ok(jwt)
+    Ok(RS256KeyPair::from_pem(&private_key)?.sign(claims)?)
+
+    //let jwt = encode(
+    //  &header,
+    //  &claims,
+    //  &EncodingKey::from_rsa_pem(&private_key)?,
+    //)?;
+
+    //Ok(jwt)
   }
 
   pub async fn fetch_access_tokens_repo(
