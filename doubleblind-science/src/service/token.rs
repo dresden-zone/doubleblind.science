@@ -90,8 +90,9 @@ impl TokenService {
           "https://api.github.com/app/installations/{installation_id}/access_tokens"
         ))
         .bearer_auth(&self.jwt)
-        .header("Accept", "application/vnd.github+json")
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
+        .header(reqwest::header::USER_AGENT, "doubleblind-science")
         .json(&request_body)
         .send()
         .await?
