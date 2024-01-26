@@ -1,15 +1,14 @@
 use axum::Server;
-use clap::Parser;
-use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
-use tower_http::cors::CorsLayer;
-use tracing::{error, info, Level, Span};
-use tracing_subscriber::{filter, FmtSubscriber};
 use axum::{
-  http::{Request, Uri},
-  middleware::Next,
+  http::{Uri},
   response::Response,
 };
+use clap::Parser;
 use std::time::Duration;
+use tower_http::cors::CorsLayer;
+use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
+use tracing::{error, info, Level, Span};
+use tracing_subscriber::{FmtSubscriber};
 
 use crate::args::DoubleBlindArgs;
 use crate::routes::route;
@@ -59,29 +58,31 @@ async fn main() -> anyhow::Result<()> {
   .await;
 
   let router = route()
-      .layer(cors)
-      .layer(
-        TraceLayer::new_for_http()
-            .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
-              tracing::info!("URI: {:?} METHOD: {:?} HEADERS: {:?}", request.uri(), request.method(), request.headers());
-            })
-            .on_response(|response: &Response, _latency: Duration, _span: &Span| {
-              println!(
-                "Success: HEADER: {:?} BODY: {:?}",
-                response.headers(),
-                response.body(),
-              )
-            })
-            .on_failure(
-              |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
-                println!(
-                  "Error: {:?}",
-                  _error
-                )
-              },
-            ),
-      )
-      .with_state(state);
+    .layer(cors)
+    .layer(
+      TraceLayer::new_for_http()
+        .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
+          info!(
+            "URI: {:?} METHOD: {:?} HEADERS: {:?}",
+            request.uri(),
+            request.method(),
+            request.headers()
+          );
+        })
+        .on_response(|response: &Response, _latency: Duration, _span: &Span| {
+          println!(
+            "Success: HEADER: {:?} BODY: {:?}",
+            response.headers(),
+            response.body(),
+          )
+        })
+        .on_failure(
+          |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
+            println!("Error: {:?}", _error)
+          },
+        ),
+    )
+    .with_state(state);
   let server = Server::bind(&args.listen_addr).serve(router.into_make_service());
 
   info!("Listening on http://{}...", server.local_addr());

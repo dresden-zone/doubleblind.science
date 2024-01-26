@@ -12,7 +12,10 @@ pub struct Model {
   #[sea_orm(column_type = "Text", nullable)]
   pub domain: Option<String>,
   #[sea_orm(column_type = "Text")]
-  pub github_name: String,
+  pub github_full_name: String,
+  #[sea_orm(column_type = "Text")]
+  pub github_short_name: String,
+  pub github_id: i64,
   pub trusted: bool,
   pub deployed: bool,
   pub last_update: TimeDateTimeWithTimeZone,

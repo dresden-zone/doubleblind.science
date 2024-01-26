@@ -8,9 +8,10 @@ use sea_orm::ActiveValue::Unchanged;
 use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, NotSet};
 
+use crate::routes::RepoInformation;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-use sea_query::ColumnRef::Column;
+
 use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -27,11 +28,19 @@ impl ProjectService {
 
   pub(crate) async fn all_github_app_installations(
     &self,
-  ) -> anyhow::Result<Vec<github_app::Model>> {
+  ) -> anyhow::Result<Vec<Model>> {
     Ok(github_app::Entity::find().all(&*self.db).await?)
   }
-  pub(crate) async fn get_github_app(&self, installation_id: i64) -> anyhow::Result<Option<github_app::Model>> {
-    Ok(github_app::Entity::find().filter(github_app::Column::InstallationId.eq(installation_id)).one(&*self.db).await?)
+  pub(crate) async fn get_github_app(
+    &self,
+    installation_id: i64,
+  ) -> anyhow::Result<Option<Model>> {
+    Ok(
+      github_app::Entity::find()
+        .filter(github_app::Column::InstallationId.eq(installation_id))
+        .one(&*self.db)
+        .await?,
+    )
   }
 
   pub(crate) async fn create_github_app(
@@ -39,7 +48,7 @@ impl ProjectService {
     installation_id: i64,
     access_token: &String,
     access_token_expire: OffsetDateTime,
-  ) -> anyhow::Result<github_app::Model> {
+  ) -> anyhow::Result<Model> {
     match github_app::Entity::find()
       .filter(github_app::Column::InstallationId.eq(installation_id))
       .one(&*self.db)
@@ -52,7 +61,7 @@ impl ProjectService {
           installation_id: Set(installation_id),
           github_access_token: Set(access_token.clone()),
           github_access_token_expire: Set(access_token_expire),
-          last_update: Set(OffsetDateTime::now_utc())
+          last_update: Set(OffsetDateTime::now_utc()),
         }
         .insert(&*self.db)
         .await?,
@@ -93,7 +102,7 @@ impl ProjectService {
     &self,
     installation_id: i64,
   ) -> anyhow::Result<Option<Vec<repository::Model>>> {
-    let found_github_app: entity::github_app::Model = match github_app::Entity::find()
+    let found_github_app: Model = match github_app::Entity::find()
       .filter(github_app::Column::InstallationId.eq(installation_id))
       .one(&*self.db)
       .await?
@@ -115,18 +124,20 @@ impl ProjectService {
   pub(crate) async fn rewrite_list_of_repositories(
     &self,
     app_id: Uuid,
-    names: Vec<String>,
+    names: Vec<RepoInformation>,
   ) -> anyhow::Result<()> {
     repository::Entity::delete_many()
       .filter(repository::Column::GithubApp.eq(app_id))
       .exec(&*self.db)
       .await?;
 
-    Repository::insert_many(names.into_iter().map(|name| repository::ActiveModel {
+    Repository::insert_many(names.into_iter().map(|info| repository::ActiveModel {
       id: Set(Uuid::new_v4()),
       github_app: Set(app_id),
       domain: NotSet,
-      github_name: Set(name),
+      github_id: Set(info.id),
+      github_short_name: Set(info.short_name),
+      github_full_name: Set(info.full_name),
       trusted: Set(false),
       deployed: Set(false),
       created_at: Set(OffsetDateTime::now_utc()),

@@ -20,15 +20,9 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
+use crate::routes::RepoInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
-
-#[derive(Serialize, Deserialize)]
-pub(super) struct RepoInformation {
-  id: i64,
-  name: String,
-  full_name: String,
-}
 
 #[derive(Serialize)]
 pub(super) struct WebHookInformation {
@@ -83,7 +77,7 @@ pub(super) struct DeploySite {
 
 #[derive(Deserialize)]
 pub(super) struct InstallationInformation {
-  id: i64
+  id: i64,
 }
 
 #[derive(Deserialize)]
@@ -99,27 +93,27 @@ pub(super) async fn github_forward_user(
   _headers: HeaderMap,
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
-  const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/project";
+  const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
   let session_id = Uuid::new_v4();
 
   let session_data = SessionData {
-    installation_id: query.installation_id
+    installation_id: query.installation_id,
   };
 
   state
-      .sessions
-      .write()
-      .await
-      .insert(session_id, Arc::new(session_data));
+    .sessions
+    .write()
+    .await
+    .insert(session_id, Arc::new(session_data));
 
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
-      .domain("api.science.tanneberger.me")
-      .same_site(SameSite::Lax)
-      .path("/")
-      .secure(true)
-      .http_only(true)
-      .max_age(Duration::days(1))
-      .finish();
+    .domain("api.science.tanneberger.me")
+    .same_site(SameSite::Lax)
+    .path("/")
+    .secure(true)
+    .http_only(true)
+    .max_age(Duration::days(1))
+    .finish();
 
   let jar = CookieJar::new();
 
@@ -131,19 +125,19 @@ pub(super) async fn github_create_installation(
   _headers: HeaderMap,
   raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
-
-
   info!("setup new github project");
 
   // parsing json body from github
-  let parsed_request: GithubWebhookSetup =
-    serde_json::from_str(&raw_body).map_err(|e| {
-      error!("cannot parse request body from github {} {:?}", &raw_body,  e);
-      StatusCode::BAD_REQUEST
+  let parsed_request: GithubWebhookSetup = serde_json::from_str(&raw_body).map_err(|e| {
+    error!(
+      "cannot parse request body from github {} {:?}",
+      &raw_body, e
+    );
+    StatusCode::BAD_REQUEST
   })?;
 
   // look which repositories are already known
-  let already_installed_repos: Vec<String> = match state
+  let already_installed_repos: Vec<RepoInformation> = match state
     .project_service
     .all_repos_for_installation_id(parsed_request.installation.id)
     .await
@@ -151,9 +145,15 @@ pub(super) async fn github_create_installation(
       error!("error all repos with this installation id {e}");
 
       StatusCode::INTERNAL_SERVER_ERROR
-    })?
-  {
-    Some(values) => values.into_iter().map(|x| x.github_name).collect(),
+    })? {
+    Some(values) => values
+      .into_iter()
+      .map(|x| RepoInformation {
+        id: x.github_id,
+        short_name: x.github_short_name,
+        full_name: x.github_full_name,
+      })
+      .collect(),
     None => {
       info!("no values previous installed repos");
       Vec::new()
@@ -161,22 +161,29 @@ pub(super) async fn github_create_installation(
   };
 
   // here we basically calculate (Known + New) - Removed
-  let mut set_of_repos: HashSet<String> = HashSet::from_iter(already_installed_repos.into_iter());
+  let mut set_of_repos: HashSet<RepoInformation> =
+    HashSet::from_iter(already_installed_repos.into_iter());
 
   for added_repo in parsed_request.repositories_added {
-    set_of_repos.insert(added_repo.name);
+    set_of_repos.insert(added_repo);
   }
 
   for removed_repo in parsed_request.repositories_removed {
-    set_of_repos.remove(&*removed_repo.name);
+    set_of_repos.remove(&removed_repo);
   }
 
-  let repos_with_permissions: Vec<String> = set_of_repos.into_iter().collect();
+  let repos_with_permissions: Vec<RepoInformation> = set_of_repos.into_iter().collect();
 
   // get a new access token for this set of repos
   let access_token: ResponseAccessTokens = state
     .token_service
-    .fetch_access_tokens_repo(parsed_request.installation.id, repos_with_permissions.clone())
+    .fetch_access_tokens_repo(
+      parsed_request.installation.id,
+      repos_with_permissions
+        .iter()
+        .map(|x| x.short_name.clone())
+        .collect(),
+    )
     .await
     .map_err(|e| {
       error!("error while trying to fetch access token {e}");
@@ -198,7 +205,7 @@ pub(super) async fn github_create_installation(
     Err(e) => {
       error!("error when trying to create github app {e}");
 
-      return Err(StatusCode::INTERNAL_SERVER_ERROR)
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
 
@@ -221,50 +228,30 @@ pub async fn github_app_repositories(
   State(state): State<DoubleBlindState>,
   _jar: CookieJar,
 ) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
-  let github_app = match state
+  match state
     .project_service
-    .get_github_app(session.installation_id)
+    .all_repos_for_installation_id(session.installation_id)
     .await
   {
-    Ok(Some(value)) => value,
+    Ok(Some(value)) => Ok(Json(
+      value
+        .iter()
+        .map(|x| RepoInformation {
+          id: x.github_id,
+          short_name: x.github_short_name.clone(),
+          full_name: x.github_full_name.clone(),
+        })
+        .collect::<Vec<RepoInformation>>(),
+    )),
     Ok(None) => {
       info!("no github installation with this name!");
-      return Err(StatusCode::NOT_FOUND);
+      Err(StatusCode::NOT_FOUND)
     }
     Err(e) => {
       error!("error while trying to query github apps {e}");
-      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+      Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
-  };
-
-  let client = Client::new();
-
-  let response: ListOfRepos = client
-    .get("https://api.github.com/installations/repositories")
-    .header(reqwest::header::ACCEPT, "applggication/vnd.github+json")
-    .header(
-      reqwest::header::AUTHORIZATION,
-      format!("Bearer {}", github_app.github_access_token.clone()),
-    )
-    .header("X-GitHub-Api-Version", "2022-11-28")
-    .header(reqwest::header::USER_AGENT, "doubleblind-science")
-    .json(&GithubDispatchEvent {
-      event_type: "doubleblind-science-setup".to_string(),
-    })
-    .send()
-    .await
-    .map_err(|e| {
-      error!("cannot fetch repositories that this app installation has access to {e}");
-      StatusCode::INTERNAL_SERVER_ERROR
-    })?
-    .json::<ListOfRepos>()
-    .await
-    .map_err(|e| {
-      error!("cannot deserialize list of repo response {e}");
-      StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-  Ok(Json(response.repositories))
+  }
 }
 
 pub async fn github_app_deploy_website(

@@ -1,13 +1,13 @@
 use chrono::prelude::*;
 use chrono::Duration;
 use core::result::Result;
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, Header};
+use jwt_simple::claims::JWTClaims;
 use jwt_simple::prelude::{Deserialize, RS256KeyPair, RSAKeyPairLike, Serialize, UnixTimeStamp};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
-use jwt_simple::claims::JWTClaims;
 use time::OffsetDateTime;
 
 #[derive(Serialize)]
@@ -31,7 +31,7 @@ struct RequestAccessTokens {
 #[derive(Deserialize)]
 pub struct ResponseAccessTokens {
   pub token: String,
-  #[serde(with="time::serde::iso8601")]
+  #[serde(with = "time::serde::iso8601")]
   pub expires_at: OffsetDateTime,
 }
 
@@ -50,7 +50,7 @@ impl TokenService {
     let iat = now.timestamp();
     let exp = (now + Duration::minutes(8)).timestamp();
 
-    let claims = JWTClaims{
+    let claims = JWTClaims {
       issued_at: Some(UnixTimeStamp::from_secs(iat as u64)),
       expires_at: Some(UnixTimeStamp::from_secs(exp as u64)),
       invalid_before: None,
