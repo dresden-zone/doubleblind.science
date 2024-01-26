@@ -15,6 +15,7 @@ mod setup;
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash)]
 pub(super) struct RepoInformation {
   pub id: i64,
+  #[serde(rename="name")]
   pub short_name: String,
   pub full_name: String,
 }
