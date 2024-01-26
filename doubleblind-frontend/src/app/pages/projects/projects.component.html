@@ -29,8 +29,8 @@
 
               <form class="create-project-input" [formGroup]="form">
                 <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
-                <label>{{project.name}}</label>
-                <feel-button (click)="validate_input_and_submit(project.name)">Deploy!</feel-button>
+                <label>{{project.full_name}}</label>
+                <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
               </form>
             </td>
             <!--<td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>-->

@@ -1,6 +1,6 @@
 import {Component, Input, ViewChild} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {ProjectService} from "../../core/data/project.service";
+import {RepositoryService} from "../../core/data/repository.service";
 import {IconTrashComponent} from "../../core/icons/icon-trash/icon-trash.component";
 import {ButtonComponent, TextFieldComponent, DropdownComponent, OptionComponent} from "@feel/form";
 import {CardComponent} from "../../core/components/card/card.component";
@@ -16,10 +16,10 @@ import {NotificationService} from "@feel/notification";
   styleUrl: './projects.component.scss'
 })
 export class ProjectsComponent {
-  protected projects = this.projectService.getUserProjects();
+  protected projects = this.projectService.getUserRepos();
 
   constructor(
-    private readonly projectService:ProjectService,
+    private readonly projectService:RepositoryService,
     private readonly notificationService: NotificationService,
   ) {
     this.form.valueChanges.subscribe(console.log);
@@ -41,7 +41,7 @@ export class ProjectsComponent {
       location.href=`https://${subdomain}.science.tanneberger.me`;
   }
 
-  protected validate_input_and_submit(repo: string) {
+  protected validate_input_and_submit(repo: bigint) {
     if (!this.form.valid) {
       console.log("invalid form!");
       return;
@@ -49,7 +49,7 @@ export class ProjectsComponent {
 
     const value = this.form.value;
 
-    this.projectService.create(value.name!, repo!)
+    this.projectService.deployRepo(value.name!, repo!)
       .subscribe({
         next: () => {
           this.notificationService.success(`Successfully Created Project`);
