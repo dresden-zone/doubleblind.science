@@ -52,7 +52,7 @@ impl ProjectService {
           installation_id: Set(installation_id),
           github_access_token: Set(access_token.clone()),
           github_access_token_expire: Set(access_token_expire),
-          last_update: Default::default(),
+          last_update: Set(OffsetDateTime::now_utc())
         }
         .insert(&*self.db)
         .await?,
