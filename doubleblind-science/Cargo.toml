@@ -20,7 +20,7 @@ sea-query = { version = "0.30", default-features = false }
 clap = { version = "4.4", features = ["derive", "env"] }
 axum-extra = { version = "0.8", features = ["cookie"] }
 futures-util = { version = "0.3", default-features = false }
-time = { version = "0.3", default-features = false }
+time = { version = "0.3", default-features = false, features = ["serde"]}
 oauth2 = { version = "4.4", features = ["reqwest"] }
 url = { version = "2.5", default-features = false }
 migration = { path = "../migration" }
