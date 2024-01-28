@@ -6,6 +6,7 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum_extra::extract::CookieJar;
 use reqwest::StatusCode;
+use tracing::error;
 use uuid::Uuid;
 
 use crate::state::DoubleBlindState;
@@ -28,14 +29,20 @@ impl FromRequestParts<DoubleBlindState> for Session {
   ) -> Result<Self, Self::Rejection> {
     let jar = CookieJar::from_headers(&parts.headers);
     let cookie = jar.get(SESSION_COOKIE).ok_or(StatusCode::UNAUTHORIZED)?;
-    let session_id = Uuid::from_str(cookie.value()).map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let session_id = Uuid::from_str(cookie.value()).map_err(|e| {
+      error!("cannot deserialize session cookie {e}");
+      StatusCode::UNAUTHORIZED
+    })?;
 
     let data = state
       .sessions
       .read()
       .await
       .get(&session_id)
-      .ok_or(StatusCode::UNAUTHORIZED)?
+      .ok_or({
+        error!("cannot find session with id: {session_id}");
+        StatusCode::UNAUTHORIZED
+      })?
       .clone();
 
     Ok(Self(data))
