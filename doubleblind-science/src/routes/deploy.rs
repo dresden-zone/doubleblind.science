@@ -2,10 +2,10 @@ use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use hmac::{Hmac, Mac};
 
+use crate::service::token::ResponseAccessTokens;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tracing::{error, info};
-use crate::service::token::ResponseAccessTokens;
 
 use crate::state::DoubleBlindState;
 
@@ -97,7 +97,7 @@ pub(super) async fn github_deploy_webhook(
     None => {
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    Some(value) => value
+    Some(value) => value,
   };
 
   let mut github_app = match state
@@ -115,12 +115,16 @@ pub(super) async fn github_deploy_webhook(
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
-  let repos = match state.project_service.all_repos_for_installation_id(github_app.installation_id).await {
+  let repos = match state
+    .project_service
+    .all_repos_for_installation_id(github_app.installation_id)
+    .await
+  {
     Ok(Some(value)) => value,
     Err(e) => {
       error!("cannot fetch repos for id {e}");
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    },
+    }
     Ok(None) => {
       error!("cannot fetch all repos");
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
@@ -128,21 +132,16 @@ pub(super) async fn github_deploy_webhook(
   };
 
   let access_token: ResponseAccessTokens = state
-      .token_service
-      .fetch_access_tokens_repo(
-        github_app.installation_id,
-        repos
-            .iter()
-            .map(|x| x.github_short_name.clone())
-            .collect(),
-      )
-      .await
-      .map_err(|e| {
-        error!("error while trying to fetch access token {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?;
-
-
+    .token_service
+    .fetch_access_tokens_repo(
+      github_app.installation_id,
+      repos.iter().map(|x| x.github_short_name.clone()).collect(),
+    )
+    .await
+    .map_err(|e| {
+      error!("error while trying to fetch access token {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
   state
     .deployment_service

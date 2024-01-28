@@ -1,5 +1,10 @@
 use axum::http::HeaderMap;
-use axum::{debug_handler, extract::{Json, Query, State}, http::StatusCode, response::Redirect};
+use axum::{
+  debug_handler,
+  extract::{Json, Query, State},
+  http::StatusCode,
+  response::Redirect,
+};
 use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
@@ -7,6 +12,7 @@ use axum_extra::extract::{
 
 use jwt_simple::algorithms::MACLike;
 
+use entity::repository::Model;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -14,7 +20,6 @@ use std::sync::Arc;
 use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
-use entity::repository::Model;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::routes::RepoInformation;
@@ -98,13 +103,13 @@ pub(super) async fn github_forward_user(
     installation_id: query.installation_id,
   };
 
-  state
+  let result = state
     .sessions
     .write()
     .await
     .insert(session_id, Arc::new(session_data));
 
-  info!("added session with session id: {session_id}");
+  info!("added session with session id: {session_id}, {:?}", state.sessions.read().await.get(&session_id));
 
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")
@@ -275,20 +280,21 @@ pub async fn github_app_deploy_website(
     }
   };
 
-  let repo =
-     match state
+  let repo = match state
     .project_service
     .deploy_repo(data.github_id.clone(), data.domain)
     .await
     .map_err(|e| {
       error!("cannot create repository {e}");
       StatusCode::INTERNAL_SERVER_ERROR
-    })?.get(0) {
-       None => {
-         return Err(StatusCode::NOT_FOUND);
-       }
-       Some(value) => value.clone()
-     };
+    })?
+    .get(0)
+  {
+    None => {
+      return Err(StatusCode::NOT_FOUND);
+    }
+    Some(value) => value.clone(),
+  };
 
   // triggering deployment via github webhook
   let client = Client::new();

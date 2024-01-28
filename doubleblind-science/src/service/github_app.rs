@@ -26,15 +26,10 @@ impl ProjectService {
     ProjectService { db }
   }
 
-  pub(crate) async fn all_github_app_installations(
-    &self,
-  ) -> anyhow::Result<Vec<Model>> {
+  pub(crate) async fn all_github_app_installations(&self) -> anyhow::Result<Vec<Model>> {
     Ok(github_app::Entity::find().all(&*self.db).await?)
   }
-  pub(crate) async fn get_github_app(
-    &self,
-    installation_id: i64,
-  ) -> anyhow::Result<Option<Model>> {
+  pub(crate) async fn get_github_app(&self, installation_id: i64) -> anyhow::Result<Option<Model>> {
     Ok(
       github_app::Entity::find()
         .filter(github_app::Column::InstallationId.eq(installation_id))
@@ -43,13 +38,8 @@ impl ProjectService {
     )
   }
 
-  pub(crate) async fn get_github_app_uuid(
-    &self,
-    id: Uuid,
-  ) -> anyhow::Result<Option<Model>> {
-    Ok(
-      github_app::Entity::find_by_id(id).one(&*self.db).await?
-    )
+  pub(crate) async fn get_github_app_uuid(&self, id: Uuid) -> anyhow::Result<Option<Model>> {
+    Ok(github_app::Entity::find_by_id(id).one(&*self.db).await?)
   }
 
   pub(crate) async fn create_github_app(
@@ -88,14 +78,13 @@ impl ProjectService {
     )
   }
 
-  pub(crate) async fn get_repository(
-    &self,
-    id: i64
-  ) -> anyhow::Result<Option<repository::Model>> {
-    Ok(repository::Entity::find()
+  pub(crate) async fn get_repository(&self, id: i64) -> anyhow::Result<Option<repository::Model>> {
+    Ok(
+      repository::Entity::find()
         .filter(repository::Column::GithubId.eq(id))
         .one(&*self.db)
-        .await?)
+        .await?,
+    )
   }
 
   pub(crate) async fn update_access_token(

@@ -1,14 +1,11 @@
 use axum::Server;
-use axum::{
-  http::{Uri},
-  response::Response,
-};
+use axum::{http::Uri, response::Response};
 use clap::Parser;
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info, Level, Span};
-use tracing_subscriber::{FmtSubscriber};
+use tracing_subscriber::FmtSubscriber;
 
 use crate::args::DoubleBlindArgs;
 use crate::routes::route;
@@ -70,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
           );
         })
         .on_response(|response: &Response, _latency: Duration, _span: &Span| {
-          println!(
+          info!(
             "Success: HEADER: {:?} BODY: {:?}",
             response.headers(),
             response.body(),
@@ -78,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
         })
         .on_failure(
           |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
-            println!("Error: {:?}", _error)
+            info!("Error: {:?}", _error)
           },
         ),
     )

@@ -13,6 +13,7 @@ use crate::state::DoubleBlindState;
 
 pub(crate) const SESSION_COOKIE: &str = "session_id";
 
+#[derive(Debug, Clone)]
 pub(crate) struct SessionData {
   pub(crate) installation_id: i64,
 }

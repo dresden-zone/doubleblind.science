@@ -1,4 +1,7 @@
-use crate::routes::setup::{github_app_deploy_website, github_app_repositories, github_create_installation, github_forward_user};
+use crate::routes::setup::{
+  github_app_deploy_website, github_app_repositories, github_create_installation,
+  github_forward_user,
+};
 use axum::routing::{get, post};
 use axum::Router;
 use jwt_simple::prelude::{Deserialize, Serialize};
@@ -13,7 +16,7 @@ mod setup;
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash)]
 pub(super) struct RepoInformation {
   pub id: i64,
-  #[serde(rename="name")]
+  #[serde(rename = "name")]
   pub short_name: String,
   pub full_name: String,
 }
