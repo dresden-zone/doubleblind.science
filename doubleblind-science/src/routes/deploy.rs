@@ -139,7 +139,6 @@ pub(super) async fn github_deploy_webhook(
       .await
       .map_err(|e| {
         error!("error while trying to fetch access token {e}");
-
         StatusCode::INTERNAL_SERVER_ERROR
       })?;
 

@@ -91,6 +91,7 @@ pub(super) async fn github_forward_user(
 ) -> Result<(CookieJar, Redirect), Redirect> {
   const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
+
   let session_id = Uuid::new_v4();
 
   let session_data = SessionData {
@@ -102,6 +103,8 @@ pub(super) async fn github_forward_user(
     .write()
     .await
     .insert(session_id, Arc::new(session_data));
+
+  info!("added session with session id: {session_id}");
 
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")
@@ -118,12 +121,11 @@ pub(super) async fn github_forward_user(
 }
 pub(super) async fn github_create_installation(
   State(state): State<DoubleBlindState>,
-  //Query(query): Query<GithubAppRegistrationCallback>,
   _headers: HeaderMap,
   raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
   info!("setup new github project");
-
+  // TODO: do HMAC Challange this endpoint should only be called from github
   // parsing json body from github
   let parsed_request: GithubWebhookSetup = serde_json::from_str(&raw_body).map_err(|e| {
     error!(
