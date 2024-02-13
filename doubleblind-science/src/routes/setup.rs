@@ -110,6 +110,7 @@ pub(super) async fn github_forward_user(
     .insert(session_id, Arc::new(session_data));
 
   info!("added session with session id: {session_id}, {:?}", state.sessions.read().await.get(&session_id));
+  info!("{:?}", state.sessions.read().await);
 
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")

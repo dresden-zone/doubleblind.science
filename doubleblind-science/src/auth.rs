@@ -6,7 +6,7 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum_extra::extract::CookieJar;
 use reqwest::StatusCode;
-use tracing::error;
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::state::DoubleBlindState;
@@ -34,6 +34,8 @@ impl FromRequestParts<DoubleBlindState> for Session {
       error!("cannot deserialize session cookie {e}");
       StatusCode::UNAUTHORIZED
     })?;
+
+    info!("{:?}", state.sessions.read().await);
 
     let data = state
       .sessions
