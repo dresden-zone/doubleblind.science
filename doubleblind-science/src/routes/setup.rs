@@ -109,9 +109,6 @@ pub(super) async fn github_forward_user(
     .await
     .insert(session_id, Arc::new(session_data));
 
-  info!("added session with session id: {session_id}, {:?}", state.sessions.read().await.get(&session_id));
-  info!("{:?}", state.sessions.read().await);
-
   let session_cookie = Cookie::build(SESSION_COOKIE, session_id.to_string())
     .domain("api.science.tanneberger.me")
     .same_site(SameSite::Lax)
@@ -131,7 +128,7 @@ pub(super) async fn github_create_installation(
   raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
   info!("setup new github project");
-  // TODO: do HMAC Challange this endpoint should only be called from github
+  // TODO: do HMAC Challenge this endpoint should only be called from github
   // parsing json body from github
   let parsed_request: GithubWebhookSetup = serde_json::from_str(&raw_body).map_err(|e| {
     error!(
@@ -148,7 +145,6 @@ pub(super) async fn github_create_installation(
     .await
     .map_err(|e| {
       error!("error all repos with this installation id {e}");
-
       StatusCode::INTERNAL_SERVER_ERROR
     })? {
     Some(values) => values
@@ -170,10 +166,12 @@ pub(super) async fn github_create_installation(
     HashSet::from_iter(already_installed_repos.into_iter());
 
   for added_repo in parsed_request.repositories_added {
+    info!("(+) Repo {} Added!", &added_repo.full_name);
     set_of_repos.insert(added_repo);
   }
 
   for removed_repo in parsed_request.repositories_removed {
+    info!("(-) Repo {} Removed!", &removed_repo.full_name);
     set_of_repos.remove(&removed_repo);
   }
 
@@ -249,7 +247,10 @@ pub async fn github_app_repositories(
         .collect::<Vec<RepoInformation>>(),
     )),
     Ok(None) => {
-      info!("no github installation with this name!");
+      info!(
+        "no github installation with this name! installation_id: {}",
+        &session.installation_id
+      );
       Err(StatusCode::NOT_FOUND)
     }
     Err(e) => {
@@ -272,7 +273,10 @@ pub async fn github_app_deploy_website(
   {
     Ok(Some(value)) => value,
     Ok(None) => {
-      info!("no github installation with this name!");
+      info!(
+        "no github installation with this name! installation_id: {}",
+        &session.installation_id
+      );
       return Err(StatusCode::NOT_FOUND);
     }
     Err(e) => {

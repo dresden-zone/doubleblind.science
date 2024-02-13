@@ -35,17 +35,12 @@ impl FromRequestParts<DoubleBlindState> for Session {
       StatusCode::UNAUTHORIZED
     })?;
 
-    info!("{:?}", state.sessions.read().await);
-
     let data = state
       .sessions
       .read()
       .await
       .get(&session_id)
-      .ok_or({
-        error!("cannot find session with id: {session_id}");
-        StatusCode::UNAUTHORIZED
-      })?
+      .ok_or({ StatusCode::UNAUTHORIZED })?
       .clone();
 
     Ok(Self(data))

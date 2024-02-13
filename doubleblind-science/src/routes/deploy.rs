@@ -70,6 +70,8 @@ pub(super) async fn github_deploy_webhook(
     }
   };
 
+  info!("New Deployment for {}", &data.repository.full_name);
+
   let repository = match state
     .project_service
     .get_repository(data.repository.id)
@@ -95,6 +97,7 @@ pub(super) async fn github_deploy_webhook(
 
   let domain = match repository.domain {
     None => {
+      error!("No Domain specified in database!");
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
     Some(value) => value,
@@ -107,7 +110,10 @@ pub(super) async fn github_deploy_webhook(
   {
     Ok(Some(value)) => value,
     Ok(None) => {
-      info!("no github installation with this name!");
+      info!(
+        "no github installation with this name! - github-app-id: {}",
+        &repository.github_app
+      );
       return Err(StatusCode::NOT_FOUND);
     }
     Err(e) => {
@@ -147,7 +153,7 @@ pub(super) async fn github_deploy_webhook(
     .deployment_service
     .deploy(
       &repository.github_full_name,
-      &github_app.github_access_token,
+      &access_token.token,
       &data.after,
       domain,
     )
