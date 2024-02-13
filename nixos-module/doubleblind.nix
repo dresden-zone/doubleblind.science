@@ -115,7 +115,7 @@ in
       services = {
         "doubleblind" = {
           enable = true;
-          wantedBy = [ "multi-user.target" "network.target" ];
+          wantedBy = [ "multi-user.target" "network.target" "doubleblind-setup.service" ];
 
           script = ''
             exec ${pkgs.doubleblind-backend}/bin/doubeblind-science&
@@ -141,6 +141,20 @@ in
             Type = "forking";
             User = cfg.user;
             Restart = "always";
+          };
+        };
+        "doubleblind-setup" = {
+          enable = true;
+          wantedBy = [ "multi-user.target" "network.target" ];
+
+          script = ''
+            mkdir -p ${cfg.storageLocation}
+            chown -R ${cfg.user} ${cfg.storageLocation}
+            chown -R ${cfg.group} ${cfg.storageLocation}
+          '';
+
+          serviceConfig = {
+            Type = "oneshot";
           };
         };
       };
