@@ -1,21 +1,15 @@
-use chrono::prelude::*;
-use chrono::Duration;
 use core::result::Result;
-use jsonwebtoken::{Algorithm, Header};
-use jwt_simple::claims::JWTClaims;
-use jwt_simple::prelude::{Deserialize, RS256KeyPair, RSAKeyPairLike, Serialize, UnixTimeStamp};
-use reqwest::Client;
 use std::collections::HashMap;
-use std::error::Error;
 use std::path::Path;
-use time::OffsetDateTime;
+use std::time::Duration;
+use std::time::SystemTime;
 
-#[derive(Serialize)]
-struct Claims {
-  iss: i64,
-  iat: i64,
-  exp: i64,
-}
+use josekit::jws::{JwsHeader, RS256};
+use josekit::jwt::{encode_with_signer, JwtPayload};
+use josekit::JoseError;
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 #[derive(Clone)]
 pub struct TokenService {
@@ -42,35 +36,21 @@ impl TokenService {
 
     TokenService { jwt }
   }
-  pub fn make_jwt(client_id: String, private_key: String) -> Result<String, Box<dyn Error>> {
-    let mut header = Header::new(Algorithm::RS256);
-    header.typ = Some("JWT".to_string());
 
-    let now = Local::now();
-    let iat = now.timestamp();
-    let exp = (now + Duration::minutes(8)).timestamp();
+  pub fn make_jwt(client_id: String, private_key: String) -> Result<String, JoseError> {
+    let mut header = JwsHeader::new();
+    header.set_token_type("JWT");
 
-    let claims = JWTClaims {
-      issued_at: Some(UnixTimeStamp::from_secs(iat as u64)),
-      expires_at: Some(UnixTimeStamp::from_secs(exp as u64)),
-      invalid_before: None,
-      issuer: Some(client_id),
-      subject: None,
-      audiences: None,
-      jwt_id: None,
-      nonce: None,
-      custom: (),
-    };
+    let now = SystemTime::now() - Duration::from_secs(10);
+    let expires = now + Duration::from_secs(60 * 8 + 10);
 
-    Ok(RS256KeyPair::from_pem(&private_key)?.sign(claims)?)
+    let mut payload = JwtPayload::new();
+    payload.set_issued_at(&now);
+    payload.set_expires_at(&expires);
+    payload.set_issuer(client_id);
 
-    //let jwt = encode(
-    //  &header,
-    //  &claims,
-    //  &EncodingKey::from_rsa_pem(&private_key)?,
-    //)?;
-
-    //Ok(jwt)
+    let signer = RS256.signer_from_pem(private_key)?;
+    Ok(encode_with_signer(&payload, &header, &signer)?)
   }
 
   pub async fn fetch_access_tokens_repo(

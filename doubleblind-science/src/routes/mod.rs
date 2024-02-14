@@ -1,13 +1,12 @@
+use axum::routing::{get, post};
+use axum::Router;
+use serde::{Deserialize, Serialize};
+
+use crate::routes::deploy::github_deploy_webhook;
 use crate::routes::setup::{
   github_app_deploy_website, github_app_repositories, github_create_installation,
   github_forward_user,
 };
-use axum::routing::{get, post};
-use axum::Router;
-use jwt_simple::prelude::{Deserialize, Serialize};
-
-//use crate::routes::auth::{auth_login_github, auth_login_github_callback, auth_me};
-use crate::routes::deploy::github_deploy_webhook;
 use crate::state::DoubleBlindState;
 
 mod deploy;

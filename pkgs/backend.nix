@@ -7,8 +7,7 @@ buildPackage {
 
   cargoSha256 = lib.fakeSha256;
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ boringssl ];
+  buildInputs = [ pkg-config openssl ];
 
   meta = {
     description = "service which promotes open science and helps with publishing artifacts";

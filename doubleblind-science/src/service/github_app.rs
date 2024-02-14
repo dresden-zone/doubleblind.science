@@ -1,20 +1,20 @@
-use entity::prelude::Repository;
 use std::sync::Arc;
 
-use entity::github_app::Model;
-use entity::{github_app, repository};
 use sea_orm::entity::EntityTrait;
 use sea_orm::ActiveValue::Unchanged;
 use sea_orm::QueryFilter;
-use sea_orm::{ColumnTrait, NotSet};
-
-use crate::routes::RepoInformation;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
-
-use sea_query::{any, Expr};
+use sea_orm::{ColumnTrait, NotSet};
+use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
+
+use entity::github_app::Model;
+use entity::prelude::Repository;
+use entity::{github_app, repository};
+
+use crate::routes::RepoInformation;
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {

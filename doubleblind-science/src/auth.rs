@@ -6,7 +6,7 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum_extra::extract::CookieJar;
 use reqwest::StatusCode;
-use tracing::{error, info};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::state::DoubleBlindState;

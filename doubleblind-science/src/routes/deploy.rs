@@ -1,12 +1,11 @@
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use hmac::{Hmac, Mac};
-
-use crate::service::token::ResponseAccessTokens;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tracing::{error, info};
 
+use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
 
 #[derive(Serialize, Deserialize)]

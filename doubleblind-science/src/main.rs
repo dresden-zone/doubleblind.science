@@ -1,7 +1,8 @@
+use std::time::Duration;
+
 use axum::Server;
 use axum::{http::Uri, response::Response};
 use clap::Parser;
-use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info, Level, Span};

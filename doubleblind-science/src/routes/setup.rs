@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+use std::sync::Arc;
+
 use axum::http::HeaderMap;
 use axum::{
-  debug_handler,
   extract::{Json, Query, State},
   http::StatusCode,
   response::Redirect,
@@ -9,14 +11,8 @@ use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
 };
-
-use jwt_simple::algorithms::MACLike;
-
-use entity::repository::Model;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::sync::Arc;
 use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
@@ -122,6 +118,7 @@ pub(super) async fn github_forward_user(
 
   Ok((jar.add(session_cookie), Redirect::to(SUCCESS_REDIRECT)))
 }
+
 pub(super) async fn github_create_installation(
   State(state): State<DoubleBlindState>,
   _headers: HeaderMap,
