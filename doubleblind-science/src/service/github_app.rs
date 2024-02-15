@@ -42,12 +42,7 @@ impl ProjectService {
     Ok(github_app::Entity::find_by_id(id).one(&*self.db).await?)
   }
 
-  pub(crate) async fn create_github_app(
-    &self,
-    installation_id: i64,
-    access_token: &String,
-    access_token_expire: OffsetDateTime,
-  ) -> anyhow::Result<Model> {
+  pub(crate) async fn create_github_app(&self, installation_id: i64) -> anyhow::Result<Model> {
     match github_app::Entity::find()
       .filter(github_app::Column::InstallationId.eq(installation_id))
       .one(&*self.db)
@@ -58,8 +53,8 @@ impl ProjectService {
         github_app::ActiveModel {
           id: Set(Uuid::new_v4()),
           installation_id: Set(installation_id),
-          github_access_token: Set(access_token.clone()),
-          github_access_token_expire: Set(access_token_expire),
+          github_access_token: NotSet,
+          github_access_token_expire: NotSet,
           last_update: Set(OffsetDateTime::now_utc()),
         }
         .insert(&*self.db)
@@ -97,8 +92,8 @@ impl ProjectService {
       github_app::ActiveModel {
         id: Unchanged(model.id),
         installation_id: Unchanged(model.installation_id),
-        github_access_token: Set(access_token.clone()),
-        github_access_token_expire: Set(access_token_expire),
+        github_access_token: Set(Some(access_token.clone())),
+        github_access_token_expire: Set(Some(access_token_expire)),
         last_update: Set(OffsetDateTime::now_utc()),
       }
       .update(&*self.db)

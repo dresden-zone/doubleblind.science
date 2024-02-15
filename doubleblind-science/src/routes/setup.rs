@@ -174,31 +174,10 @@ pub(super) async fn github_create_installation(
 
   let repos_with_permissions: Vec<RepoInformation> = set_of_repos.into_iter().collect();
 
-  // get a new access token for this set of repos
-  let access_token: ResponseAccessTokens = state
-    .token_service
-    .fetch_access_tokens_repo(
-      parsed_request.installation.id,
-      repos_with_permissions
-        .iter()
-        .map(|x| x.short_name.clone())
-        .collect(),
-    )
-    .await
-    .map_err(|e| {
-      error!("error while trying to fetch access token {e}");
-
-      StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
   // create if github_app doesn't exist yet
   let github_app_db = match state
     .project_service
-    .create_github_app(
-      parsed_request.installation.id,
-      &access_token.token,
-      access_token.expires_at,
-    )
+    .create_github_app(parsed_request.installation.id)
     .await
   {
     Ok(value) => value,
@@ -298,6 +277,15 @@ pub async fn github_app_deploy_website(
     Some(value) => value.clone(),
   };
 
+  let access_token: ResponseAccessTokens = state
+    .token_service
+    .fetch_access_tokens_repo(github_app.installation_id, vec![repo.github_short_name])
+    .await
+    .map_err(|e| {
+      error!("error while trying to fetch access token {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
   // triggering deployment via github webhook
   let client = Client::new();
   Ok(
@@ -307,7 +295,7 @@ pub async fn github_app_deploy_website(
         &repo.github_full_name
       ))
       .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .bearer_auth(github_app.github_access_token.clone())
+      .bearer_auth(access_token.token)
       .header("X-GitHub-Api-Version", "2022-11-28")
       .header(reqwest::header::USER_AGENT, "doubleblind-science")
       .json(&GithubDispatchEvent {
