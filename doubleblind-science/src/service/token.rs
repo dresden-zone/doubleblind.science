@@ -10,6 +10,7 @@ use josekit::JoseError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use tracing::info;
 
 #[derive(Clone)]
 pub struct TokenService {
@@ -65,8 +66,7 @@ impl TokenService {
     };
 
     println!("DEBUG {:?} \nJWT {}", &request_body, &self.jwt);
-    Ok(
-      client
+    let temporary =       client
         .post(format!(
           "https://api.github.com/app/installations/{installation_id}/access_tokens"
         ))
@@ -76,7 +76,11 @@ impl TokenService {
         .header(reqwest::header::USER_AGENT, "doubleblind-science")
         .json(&request_body)
         .send()
-        .await?
+        .await?;
+
+    info!("Response: {:#?}", &temporary);
+    Ok(
+        temporary
         .error_for_status()?
         .json::<ResponseAccessTokens>()
         .await?,
