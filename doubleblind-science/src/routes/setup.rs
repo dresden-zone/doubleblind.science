@@ -85,6 +85,21 @@ pub(super) struct GithubWebhookSetup {
   repositories_removed: Vec<RepoInformation>,
 }
 
+#[derive(Serialize)]
+struct WebHookConfig {
+  url: String,
+  content_type: String,
+  insecure_ssl: String
+}
+// {"name":"web","active":true,"events":["push","pull_request"],"config":{"url":"https://example.com/webhook","content_type":"json","insecure_ssl":"0"}}
+#[derive(Serialize)]
+pub(super) struct CreateWebhookRequest {
+  name: String,
+  active: bool,
+  events: Vec<String>,
+  config: WebHookConfig
+}
+
 pub(super) async fn github_forward_user(
   State(state): State<DoubleBlindState>,
   Query(query): Query<GithubAppRegistrationCallback>,
@@ -286,8 +301,39 @@ pub async fn github_app_deploy_website(
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-  // triggering deployment via github webhook
+
   let client = Client::new();
+  client
+      .post(format!(
+        "https://api.github.com/repos/{}/hooks",
+        &repo.github_full_name
+      ))
+      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+      .bearer_auth(&access_token.token)
+      .header("X-GitHub-Api-Version", "2022-11-28")
+      .header(reqwest::header::USER_AGENT, "doubleblind-science")
+      .json(&WebhookRegistrationRequest {
+        name: "doubleblind-science-deploy".to_string(),
+        active: true,
+        events: vec!["push".to_string()],
+        config: WebHookInformation {
+          url: "https://api.science.tanneberger.me/v1/github/hooks/deploy".to_string(),
+          content_type: "json".to_string(),
+          insecure_ssl: "0".to_string(),
+        },
+      })
+      .send()
+      .await
+      .map(|response| {
+        info!("Response for Hook Creation {:#?}", response);
+        response
+      })
+      .map_err(|e| {
+        error!("cannot dispatch webhook event with github {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+      })?
+      .status();
+  // triggering deployment via github webhook
   Ok(
     client
       .get(format!(
@@ -299,7 +345,7 @@ pub async fn github_app_deploy_website(
       .header("X-GitHub-Api-Version", "2022-11-28")
       .header(reqwest::header::USER_AGENT, "doubleblind-science")
       .json(&GithubDispatchEvent {
-        event_type: "doubleblind-science-setup".to_string(),
+        event_type: "doubleblind-science-deploy".to_string(),
       })
       .send()
       .await
