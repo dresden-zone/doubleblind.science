@@ -347,7 +347,7 @@ pub async fn github_app_deploy_website(
     .status();
 
   let git_refs: Vec<GithubCommit> = client
-    .post(format!(
+    .get(format!(
       "https://api.github.com/repos/{}/git/refs",
       &repo.github_full_name
     ))
