@@ -171,6 +171,9 @@ pub(super) async fn github_create_installation(
         id: x.github_id,
         short_name: x.github_short_name,
         full_name: x.github_full_name,
+        deployed: x.deployed,
+        domain: x.domain,
+        branch: x.branch,
       })
       .collect(),
     None => {
@@ -240,6 +243,9 @@ pub async fn github_app_repositories(
           id: x.github_id,
           short_name: x.github_short_name.clone(),
           full_name: x.github_full_name.clone(),
+          deployed: x.deployed.clone(),
+          branch: x.branch.clone(),
+          domain: x.domain.clone()
         })
         .collect::<Vec<RepoInformation>>(),
     )),

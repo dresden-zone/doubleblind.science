@@ -3,15 +3,6 @@
 <main>
   <div class="container">
     <a href="/"><h1 class="title">Doubleblind.Science</h1></a>
-    <!--<app-card >
-      <div class="create-project-body">
-        <h2>Publish Your Artifacts</h2>
-        <form class="create-project-input" [formGroup]="form">
-          <feel-text-field label="Github Repositoriy" formControlName="repo"></feel-text-field>
-        </form>
-        <feel-button (click)="validate_input_and_submit()">Publish!</feel-button>
-      </div>
-    </app-card>-->
     <app-card>
       <div class="project-list">
         <h2>Your Sites</h2>
@@ -26,15 +17,23 @@
           <tbody>
           <tr *ngFor="let project of (projects | async )">
             <td colspan="2">
-
-              <form class="create-project-input" [formGroup]="form">
+              <ng-template [ngIf]="project.deployed">
                 <b>{{project.full_name}}</b>
-                <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
-                <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
-                <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
-              </form>
+                <b>{{project.domain}}</b>
+                <b>{{project.branch}}</b>
+                <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
+              </ng-template>
+              <ng-template [ngIf]="!project.deployed">
+                <form class="create-project-input" [formGroup]="form">
+                  <b>{{project.full_name}}</b>
+                  <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
+                  <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
+                  <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
+                </form>
+              </ng-template>
+
+
             </td>
-            <!--<td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>-->
             <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
           </tr>
           </tbody>

@@ -18,6 +18,9 @@ pub(super) struct RepoInformation {
   #[serde(rename = "name")]
   pub short_name: String,
   pub full_name: String,
+  pub deployed: bool,
+  pub domain: Option<String>,
+  pub branch: Option<String>
 }
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
