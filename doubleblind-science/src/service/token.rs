@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use core::result::Result;
 use std::collections::HashMap;
 use std::path::Path;
@@ -10,7 +11,6 @@ use josekit::JoseError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use tracing::info;
 
 #[derive(Clone)]
 pub struct TokenService {
@@ -78,12 +78,14 @@ impl TokenService {
       .send()
       .await?;
 
-    info!("Response: {:#?}", &temporary);
-    Ok(
-      temporary
-        .error_for_status()?
-        .json::<ResponseAccessTokens>()
-        .await?,
-    )
+    if temporary.status().is_success() {
+      Ok(temporary.json().await?)
+    } else {
+      Err(anyhow!(
+        "Error while obtaining token: {} {}",
+        temporary.status(),
+        temporary.text().await?
+      ))
+    }
   }
 }
