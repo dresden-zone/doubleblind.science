@@ -313,7 +313,7 @@ pub async fn github_app_deploy_website(
       .header("X-GitHub-Api-Version", "2022-11-28")
       .header(reqwest::header::USER_AGENT, "doubleblind-science")
       .json(&WebhookRegistrationRequest {
-        name: "doubleblind-science-deploy".to_string(),
+        name: "web".to_string(),
         active: true,
         events: vec!["push".to_string()],
         config: WebHookInformation {
