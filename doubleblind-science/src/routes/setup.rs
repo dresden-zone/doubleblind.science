@@ -63,12 +63,6 @@ pub(super) struct GithubAppRegistrationCallback {
 }
 
 #[derive(Deserialize)]
-pub(super) struct ListOfRepos {
-  _total_count: i64,
-  repositories: Vec<RepoInformation>,
-}
-
-#[derive(Deserialize)]
 pub(super) struct DeploySite {
   domain: String,
   branch: String,
@@ -118,7 +112,6 @@ pub(super) async fn github_forward_user(
   Query(query): Query<GithubAppRegistrationCallback>,
   _headers: HeaderMap,
 ) -> Result<(CookieJar, Redirect), Redirect> {
-  const ERROR_REDIRECT: &str = "https://science.tanneberger.me/error";
   const SUCCESS_REDIRECT: &str = "https://science.tanneberger.me/projects";
 
   let session_id = Uuid::new_v4();

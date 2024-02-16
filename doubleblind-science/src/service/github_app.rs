@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use sea_orm::entity::EntityTrait;
-use sea_orm::ActiveValue::Unchanged;
 use sea_orm::QueryFilter;
 use sea_orm::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
@@ -26,9 +25,6 @@ impl ProjectService {
     ProjectService { db }
   }
 
-  pub(crate) async fn all_github_app_installations(&self) -> anyhow::Result<Vec<Model>> {
-    Ok(github_app::Entity::find().all(&*self.db).await?)
-  }
   pub(crate) async fn get_github_app(&self, installation_id: i64) -> anyhow::Result<Option<Model>> {
     Ok(
       github_app::Entity::find()
@@ -53,24 +49,12 @@ impl ProjectService {
         github_app::ActiveModel {
           id: Set(Uuid::new_v4()),
           installation_id: Set(installation_id),
-          github_access_token: NotSet,
-          github_access_token_expire: NotSet,
           last_update: Set(OffsetDateTime::now_utc()),
         }
         .insert(&*self.db)
         .await?,
       ),
     }
-  }
-
-  pub(crate) async fn delete(&self, github_app_id: Uuid) -> anyhow::Result<bool> {
-    Ok(
-      github_app::Entity::delete_by_id(github_app_id)
-        .exec(&*self.db)
-        .await?
-        .rows_affected
-        > 0,
-    )
   }
 
   pub(crate) async fn get_repository(&self, id: i64) -> anyhow::Result<Option<repository::Model>> {
@@ -80,25 +64,6 @@ impl ProjectService {
         .one(&*self.db)
         .await?,
     )
-  }
-
-  pub(crate) async fn update_access_token(
-    &self,
-    model: Model,
-    access_token: &String,
-    access_token_expire: OffsetDateTime,
-  ) -> anyhow::Result<Option<Model>> {
-    Ok(Some(
-      github_app::ActiveModel {
-        id: Unchanged(model.id),
-        installation_id: Unchanged(model.installation_id),
-        github_access_token: Set(Some(access_token.clone())),
-        github_access_token_expire: Set(Some(access_token_expire)),
-        last_update: Set(OffsetDateTime::now_utc()),
-      }
-      .update(&*self.db)
-      .await?,
-    ))
   }
 
   pub(crate) async fn all_repos_for_installation_id(

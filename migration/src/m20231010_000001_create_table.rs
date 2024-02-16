@@ -15,8 +15,6 @@ impl MigrationTrait for Migration {
       CREATE TABLE github_app (
         id UUID PRIMARY KEY,
         installation_id BIGINT NOT NULL,
-        github_access_token TEXT,
-        github_access_token_expire TIMESTAMPTZ,
         last_update TIMESTAMPTZ NOT NULL
       );
 

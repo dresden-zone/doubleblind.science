@@ -28,6 +28,7 @@
             <td colspan="2">
 
               <form class="create-project-input" [formGroup]="form">
+                <b>{{project.full_name}}</b>
                 <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
                 <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
                 <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>

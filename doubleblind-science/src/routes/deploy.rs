@@ -2,7 +2,6 @@ use crate::service::deploy::DeploymentInformation;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
-use hmac::Mac;
 use serde::{Deserialize, Serialize};
 
 use tracing::{error, info};

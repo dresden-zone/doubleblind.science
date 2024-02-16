@@ -1,7 +1,7 @@
 use std::time::Duration;
 
+use axum::response::Response;
 use axum::Server;
-use axum::{http::Uri, response::Response};
 use clap::Parser;
 
 use tokio::select;
@@ -20,8 +20,6 @@ mod routes;
 pub mod service;
 mod state;
 pub mod structs;
-
-struct RequestUri(Uri);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

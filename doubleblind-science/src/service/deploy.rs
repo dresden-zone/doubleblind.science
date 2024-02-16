@@ -104,7 +104,6 @@ impl DeploymentService {
 
       tokio::fs::remove_dir(entry).await?;
     }
-    Ok(())
   }
 }
 
