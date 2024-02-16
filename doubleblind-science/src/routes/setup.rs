@@ -367,7 +367,7 @@ pub async fn github_app_deploy_website(
 
   let commit_ref = match git_refs
     .iter()
-    .find(|p| p.r#ref == format!("/refs/heads/{}", &data.branch))
+    .find(|p| p.r#ref == format!("refs/heads/{}", &data.branch))
   {
     Some(value) => value,
     None => {
