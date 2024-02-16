@@ -34,7 +34,7 @@ export class ProjectsComponent {
 
   protected form = new FormGroup( {
     name: new FormControl(null, [Validators.required, Validators.minLength(6)]),
-    //repo: new FormControl(null, [Validators.required, Validators.pattern(/.+\/.+/)]),
+    branch: new FormControl(null, [Validators.required]),
   })
 
   protected visit_website(subdomain: string) {
@@ -49,7 +49,7 @@ export class ProjectsComponent {
 
     const value = this.form.value;
 
-    this.projectService.deployRepo(value.name!, repo!)
+    this.projectService.deployRepo(value.name!, value.branch!, repo!)
       .subscribe({
         next: () => {
           this.notificationService.success(`Successfully Created Project`);

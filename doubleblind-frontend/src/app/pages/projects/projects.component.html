@@ -29,7 +29,7 @@
 
               <form class="create-project-input" [formGroup]="form">
                 <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
-                <label>{{project.full_name}}</label>
+                <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
                 <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
               </form>
             </td>

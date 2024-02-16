@@ -19,10 +19,11 @@ export class RepositoryService {
       withCredentials: true
     })
   }
-  public deployRepo(domain: string, github_id: bigint): Observable<void> {
+  public deployRepo(domain: string, branch: string, github_id: bigint): Observable<void> {
     console.log("creating project with " + domain + " and repo " + github_id);
     return this.http.post(`https://api.${API_URL}/v1/github/deploy`, {
       domain: domain,
+      branch: branch,
       github_id: github_id
     }, {
       withCredentials: true
