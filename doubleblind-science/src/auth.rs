@@ -40,7 +40,7 @@ impl FromRequestParts<DoubleBlindState> for Session {
       .read()
       .await
       .get(&session_id)
-      .ok_or({ StatusCode::UNAUTHORIZED })?
+      .ok_or(StatusCode::UNAUTHORIZED)?
       .clone();
 
     Ok(Self(data))

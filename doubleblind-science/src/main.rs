@@ -3,6 +3,8 @@ use std::time::Duration;
 use axum::Server;
 use axum::{http::Uri, response::Response};
 use clap::Parser;
+
+use tokio::select;
 use tower_http::cors::CorsLayer;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info, Level, Span};
@@ -55,6 +57,9 @@ async fn main() -> anyhow::Result<()> {
   )
   .await;
 
+  let deployment_service_copy = state.deployment_service.clone();
+  let deploy_loop_future = deployment_service_copy.deploy_loop();
+
   let router = route()
     .layer(cors)
     .layer(
@@ -85,8 +90,17 @@ async fn main() -> anyhow::Result<()> {
 
   info!("Listening on http://{}...", server.local_addr());
 
-  if let Err(err) = server.await {
-    error!("Error while serving api: {}", err);
+  select! {
+    result = server => {
+      if let Err(e) = result {
+        error!("Error while serving api: {}", e);
+      }
+    },
+    result = deploy_loop_future => {
+      if let Err(e) = result {
+        error!("Error while serving api: {}", e);
+      }
+    }
   }
 
   Ok(())

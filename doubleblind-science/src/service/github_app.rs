@@ -138,6 +138,7 @@ impl ProjectService {
       id: Set(Uuid::new_v4()),
       github_app: Set(app_id),
       domain: NotSet,
+      branch: NotSet,
       github_id: Set(info.id),
       github_short_name: Set(info.short_name),
       github_full_name: Set(info.full_name),
@@ -156,11 +157,13 @@ impl ProjectService {
     &self,
     github_id: i64,
     domain: String,
+    branch: String,
   ) -> anyhow::Result<Vec<repository::Model>> {
     Ok(
       Repository::update_many()
         .col_expr(repository::Column::Deployed, Expr::value(true))
         .col_expr(repository::Column::Domain, Expr::value(domain))
+        .col_expr(repository::Column::Branch, Expr::value(branch))
         .filter(repository::Column::GithubId.eq(github_id))
         .exec_with_returning(&*self.db)
         .await?,

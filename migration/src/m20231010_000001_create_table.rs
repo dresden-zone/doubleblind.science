@@ -24,6 +24,7 @@ impl MigrationTrait for Migration {
         id UUID PRIMARY KEY,
         github_app UUID NOT NULL REFERENCES github_app(id),
         domain TEXT,
+        branch TEXT,
         github_full_name TEXT NOT NULL,
         github_short_name TEXT NOT NULL,
         github_id BIGINT NOT NULL,

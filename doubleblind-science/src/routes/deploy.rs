@@ -1,8 +1,10 @@
+use crate::service::deploy::DeploymentInformation;
 use axum::extract::State;
-use axum::http::{HeaderMap, StatusCode};
-use hmac::{Hmac, Mac};
+use axum::http::StatusCode;
+use axum::Json;
+use hmac::Mac;
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
+
 use tracing::{error, info};
 
 use crate::service::token::ResponseAccessTokens;
@@ -20,55 +22,21 @@ pub(super) struct RepositoryInformationGithub {
   id: i64,
   full_name: String,
   size: i64,
-  owner: OwnerInformationGithub,
+  default_branch: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct GithubWebhookRequest {
+  r#ref: String,
   before: String,
   after: String,
   repository: RepositoryInformationGithub,
 }
 
 pub(super) async fn github_deploy_webhook(
-  State(state): State<DoubleBlindState>,
-  headers: HeaderMap,
-  raw_body: String,
+  State(mut state): State<DoubleBlindState>,
+  data: Json<GithubWebhookRequest>,
 ) -> Result<StatusCode, StatusCode> {
-  type HmacSha256 = Hmac<Sha256>;
-
-  let hash = match headers.get("X-Hub-Signature-256") {
-    Some(value) => value,
-    None => {
-      error!("github didn't send HMAC challange hash!");
-      return Err(StatusCode::BAD_REQUEST);
-    }
-  };
-
-  match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
-    Ok(mut mac) => {
-      mac.update(raw_body.as_ref());
-      let result: &[u8] = &mac.finalize().into_bytes();
-
-      if result != hash.as_bytes().iter().as_slice() {
-        error!("non github entity tried to call the webhook endpoint!");
-        return Err(StatusCode::FORBIDDEN);
-      }
-    }
-    Err(e) => {
-      error!("cannot generate hmac with error {}", e);
-      return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  let data: GithubWebhookRequest = match serde_json::from_str(&raw_body) {
-    Ok(value) => value,
-    Err(e) => {
-      error!("cannot parse json body from request body {e}");
-      return Err(StatusCode::BAD_REQUEST);
-    }
-  };
-
   info!("New Deployment for {}", &data.repository.full_name);
 
   let repository = match state
@@ -94,15 +62,19 @@ pub(super) async fn github_deploy_webhook(
     return Err(StatusCode::BAD_REQUEST);
   }
 
-  let domain = match repository.domain {
-    None => {
-      error!("No Domain specified in database!");
+  let (domain, branch) = match (repository.domain, repository.branch) {
+    (Some(new_domain), Some(new_branch)) => (new_domain, new_branch),
+    _ => {
+      error!("No Domain or Branch specified in database!");
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    Some(value) => value,
   };
 
-  let mut github_app = match state
+  if format!("refs/heads/{}", branch) != data.r#ref {
+    return Ok(StatusCode::NO_CONTENT);
+  }
+
+  let github_app = match state
     .project_service
     .get_github_app_uuid(repository.github_app)
     .await
@@ -150,15 +122,15 @@ pub(super) async fn github_deploy_webhook(
 
   state
     .deployment_service
-    .deploy(
-      &repository.github_full_name,
-      &access_token.token,
-      &data.after,
+    .queue_deployment(DeploymentInformation {
+      full_name: repository.github_full_name,
+      token: access_token.token,
       domain,
-    )
+      commit_id: data.after.clone(),
+    })
     .await
-    .map_err(|e| {
-      error!("error while deploying the newest version {e}");
+    .map_err(|_e| {
+      error!("queueing for deployment failed!");
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
 

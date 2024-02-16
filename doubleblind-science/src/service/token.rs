@@ -51,7 +51,7 @@ impl TokenService {
     payload.set_issuer(client_id);
 
     let signer = RS256.signer_from_pem(private_key)?;
-    Ok(encode_with_signer(&payload, &header, &signer)?)
+    encode_with_signer(&payload, &header, &signer)
   }
 
   pub async fn fetch_access_tokens_repo(
@@ -66,21 +66,21 @@ impl TokenService {
     };
 
     println!("DEBUG {:?} \nJWT {}", &request_body, &self.jwt);
-    let temporary =       client
-        .post(format!(
-          "https://api.github.com/app/installations/{installation_id}/access_tokens"
-        ))
-        .bearer_auth(&self.jwt)
-        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header(reqwest::header::USER_AGENT, "doubleblind-science")
-        .json(&request_body)
-        .send()
-        .await?;
+    let temporary = client
+      .post(format!(
+        "https://api.github.com/app/installations/{installation_id}/access_tokens"
+      ))
+      .bearer_auth(&self.jwt)
+      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+      .header("X-GitHub-Api-Version", "2022-11-28")
+      .header(reqwest::header::USER_AGENT, "doubleblind-science")
+      .json(&request_body)
+      .send()
+      .await?;
 
     info!("Response: {:#?}", &temporary);
     Ok(
-        temporary
+      temporary
         .error_for_status()?
         .json::<ResponseAccessTokens>()
         .await?,

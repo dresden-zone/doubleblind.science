@@ -19,6 +19,7 @@ use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
 use crate::routes::RepoInformation;
+use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
 
@@ -70,6 +71,7 @@ pub(super) struct ListOfRepos {
 #[derive(Deserialize)]
 pub(super) struct DeploySite {
   domain: String,
+  branch: String,
   github_id: i64,
 }
 
@@ -89,7 +91,7 @@ pub(super) struct GithubWebhookSetup {
 struct WebHookConfig {
   url: String,
   content_type: String,
-  insecure_ssl: String
+  insecure_ssl: String,
 }
 // {"name":"web","active":true,"events":["push","pull_request"],"config":{"url":"https://example.com/webhook","content_type":"json","insecure_ssl":"0"}}
 #[derive(Serialize)]
@@ -97,7 +99,18 @@ pub(super) struct CreateWebhookRequest {
   name: String,
   active: bool,
   events: Vec<String>,
-  config: WebHookConfig
+  config: WebHookConfig,
+}
+
+#[derive(Deserialize)]
+pub(super) struct CommitObject {
+  sha: String,
+}
+
+#[derive(Deserialize)]
+pub(super) struct GithubCommit {
+  r#ref: String,
+  object: CommitObject,
 }
 
 pub(super) async fn github_forward_user(
@@ -114,7 +127,7 @@ pub(super) async fn github_forward_user(
     installation_id: query.installation_id,
   };
 
-  let result = state
+  let _result = state
     .sessions
     .write()
     .await
@@ -253,7 +266,7 @@ pub async fn github_app_repositories(
 
 pub async fn github_app_deploy_website(
   Session(session): Session,
-  State(state): State<DoubleBlindState>,
+  State(mut state): State<DoubleBlindState>,
   _jar: CookieJar,
   Json(data): Json<DeploySite>,
 ) -> Result<StatusCode, StatusCode> {
@@ -278,13 +291,13 @@ pub async fn github_app_deploy_website(
 
   let repo = match state
     .project_service
-    .deploy_repo(data.github_id.clone(), data.domain)
+    .deploy_repo(data.github_id, data.domain.clone(), data.branch.clone())
     .await
     .map_err(|e| {
       error!("cannot create repository {e}");
       StatusCode::INTERNAL_SERVER_ERROR
     })?
-    .get(0)
+    .first()
   {
     None => {
       return Err(StatusCode::NOT_FOUND);
@@ -301,62 +314,89 @@ pub async fn github_app_deploy_website(
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-
   let client = Client::new();
   client
-      .post(format!(
-        "https://api.github.com/repos/{}/hooks",
-        &repo.github_full_name
-      ))
-      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .bearer_auth(&access_token.token)
-      .header("X-GitHub-Api-Version", "2022-11-28")
-      .header(reqwest::header::USER_AGENT, "doubleblind-science")
-      .json(&WebhookRegistrationRequest {
-        name: "web".to_string(),
-        active: true,
-        events: vec!["push".to_string()],
-        config: WebHookInformation {
-          url: "https://api.science.tanneberger.me/v1/github/hooks/deploy".to_string(),
-          content_type: "json".to_string(),
-          insecure_ssl: "0".to_string(),
-        },
-      })
-      .send()
-      .await
-      .map(|response| {
-        info!("Response for Hook Creation {:#?}", response);
-        response
-      })
-      .map_err(|e| {
-        error!("cannot dispatch webhook event with github {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?
-      .status();
+    .post(format!(
+      "https://api.github.com/repos/{}/hooks",
+      &repo.github_full_name
+    ))
+    .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+    .bearer_auth(&access_token.token)
+    .header("X-GitHub-Api-Version", "2022-11-28")
+    .header(reqwest::header::USER_AGENT, "doubleblind-science")
+    .json(&WebhookRegistrationRequest {
+      name: "web".to_string(),
+      active: true,
+      events: vec!["push".to_string()],
+      config: WebHookInformation {
+        url: "https://api.science.tanneberger.me/v1/github/hooks/deploy".to_string(),
+        content_type: "json".to_string(),
+        insecure_ssl: "0".to_string(),
+      },
+    })
+    .send()
+    .await
+    .map(|response| {
+      info!("Response for Hook Creation {:#?}", response);
+      response
+    })
+    .map_err(|e| {
+      error!("cannot dispatch webhook event with github {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?
+    .status();
+
+  let git_refs: Vec<GithubCommit> = client
+    .post(format!(
+      "https://api.github.com/repos/{}/git/refs",
+      &repo.github_full_name
+    ))
+    .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+    .bearer_auth(&access_token.token)
+    .header("X-GitHub-Api-Version", "2022-11-28")
+    .header(reqwest::header::USER_AGENT, "doubleblind-science")
+    .send()
+    .await
+    .map(|response| {
+      info!("Response for Hook Creation {:#?}", response);
+      response
+    })
+    .map_err(|e| {
+      error!("cannot dispatch webhook event with github {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?
+    .json::<Vec<GithubCommit>>()
+    .await
+    .map_err(|e| {
+      error!("cannot parse git commit response {e}");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+  let commit_ref = match git_refs
+    .iter()
+    .find(|p| p.r#ref == format!("/refs/heads/{}", &data.branch))
+  {
+    Some(value) => value,
+    None => {
+      error!("branch not found {}", &data.branch);
+      return Err(StatusCode::NOT_FOUND);
+    }
+  };
+
+  state
+    .deployment_service
+    .queue_deployment(DeploymentInformation {
+      full_name: repo.github_full_name,
+      token: access_token.token,
+      domain: data.domain,
+      commit_id: commit_ref.object.sha.clone(),
+    })
+    .await
+    .map_err(|_e| {
+      error!("queueing for deployment failed!");
+      StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+  Ok(StatusCode::OK)
   // triggering deployment via github webhook
-  Ok(
-    client
-      .get(format!(
-        "https://api.github.com/repos/{}/dispatches",
-        &repo.github_full_name
-      ))
-      .header(reqwest::header::ACCEPT, "application/vnd.github+json")
-      .bearer_auth(access_token.token)
-      .header("X-GitHub-Api-Version", "2022-11-28")
-      .header(reqwest::header::USER_AGENT, "doubleblind-science")
-      .json(&GithubDispatchEvent {
-        event_type: "doubleblind-science-deploy".to_string(),
-      })
-      .send()
-      .await
-      .map(|response| {
-        info!("Response for Dispatch {:#?}", response);
-        response
-      })
-      .map_err(|e| {
-        error!("cannot dispatch webhook event with github {e}");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?
-      .status(),
-  )
 }

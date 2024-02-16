@@ -11,6 +11,8 @@ pub struct Model {
   pub github_app: Uuid,
   #[sea_orm(column_type = "Text", nullable)]
   pub domain: Option<String>,
+  #[sea_orm(column_type = "Text", nullable)]
+  pub branch: Option<String>,
   #[sea_orm(column_type = "Text")]
   pub github_full_name: String,
   #[sea_orm(column_type = "Text")]

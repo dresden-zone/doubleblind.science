@@ -8,7 +8,7 @@ sea-orm = { version = "0.12", default-features = false, features = ["runtime-tok
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls-webpki-roots", "stream"] }
 sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio", "postgres", "migrate"] }
 axum = { version = "0.6", default-features = false, features = ["tokio", "http1", "json", "macros", "query"] }
-tokio = { version = "1.36", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.36", default-features = false, features = ["macros", "rt-multi-thread", "signal", "sync"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
 async-compression = { version = "0.4", default-features = false, features = ["tokio", "gzip"] }
 tracing = { version = "0.1", default-features = false, features = ["release_max_level_info"] }
