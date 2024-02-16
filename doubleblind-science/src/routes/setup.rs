@@ -303,6 +303,10 @@ pub async fn github_app_deploy_website(
       })
       .send()
       .await
+      .map(|response| {
+        info!("Response for Dispatch {:#?}", response);
+        response
+      })
       .map_err(|e| {
         error!("cannot dispatch webhook event with github {e}");
         StatusCode::INTERNAL_SERVER_ERROR
