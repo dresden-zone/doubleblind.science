@@ -17,28 +17,22 @@
           </thead>
           <tbody>
           <tr *ngFor="let project of (projects | async )">
-            <td colspan="2">
+            <!--<td colspan="2">-->
               <ng-template [ngIf]="project.deployed">
-                <tr>
-                  <td><b>{{project.full_name}}</b></td>
-                  <td><b>{{project.domain}}</b></td>
-                  <td><b>{{project.branch}}</b></td>
-                  <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
-                </tr>
+                <td><b>{{project.full_name}}</b></td>
+                <td><b>{{project.domain}}</b></td>
+                <td><b>{{project.branch}}</b></td>
+                <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
               </ng-template>
               <ng-template [ngIf]="!project.deployed">
                 <form class="create-project-input" [formGroup]="form">
-                <tr>
                   <td><b>{{project.full_name}}</b></td>
                   <td><feel-text-field label="Subdomain" formControlName="name"></feel-text-field></td>
                   <td><feel-text-field label="Branch" formControlName="branch"></feel-text-field></td>
                   <td><feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button></td>
-                </tr>
                 </form>
               </ng-template>
-
-
-            </td>
+            <!--</td>-->
             <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
           </tr>
           </tbody>
