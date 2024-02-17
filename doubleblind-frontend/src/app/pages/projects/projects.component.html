@@ -17,33 +17,26 @@
           </thead>
           <tbody>
           <tr *ngFor="let project of (projects | async )">
+            <td><b>{{project.full_name}}</b></td>
             <td>
-                <b>{{project.full_name}}</b>
-            </td>
-            <td>
-              <ng-template [ngIf]="project.deployed">
-                <b>{{project.domain}}</b>
-              </ng-template>
-              <ng-template [ngIf]="!project.deployed">
+              <b *ngIf="project.deployed; else setupDomain">{{project.domain}}</b>
+              <ng-template #setupDomain>
                 <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
               </ng-template>
             </td>
             <td>
-              <ng-template [ngIf]="project.deployed">
-                <b>{{project.branch}}</b>
-              </ng-template>
-              <ng-template [ngIf]="!project.deployed">
+              <b *ngIf="project.deployed; else setupBranch">{{project.branch}}</b>
+              <ng-template #setupBranch>
                 <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
               </ng-template>
             </td>
             <td>
-              <ng-template [ngIf]="project.deployed">
-                <feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button>
-              </ng-template>
-              <ng-template [ngIf]="!project.deployed">
+              <feel-button *ngIf="project.deployed; else submitButton" (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button>
+              <ng-template #submitButton>
                 <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
               </ng-template>
             </td>
+
             <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
           </tr>
           </tbody>
