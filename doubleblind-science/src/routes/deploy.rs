@@ -91,27 +91,12 @@ pub(super) async fn github_deploy_webhook(
       return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
   };
-  let repos = match state
-    .project_service
-    .all_repos_for_installation_id(github_app.installation_id)
-    .await
-  {
-    Ok(Some(value)) => value,
-    Err(e) => {
-      error!("cannot fetch repos for id {e}");
-      return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
-    Ok(None) => {
-      error!("cannot fetch all repos");
-      return Err(StatusCode::INTERNAL_SERVER_ERROR);
-    }
-  };
 
   let access_token: ResponseAccessTokens = state
     .token_service
     .fetch_access_tokens_repo(
       github_app.installation_id,
-      repos.iter().map(|x| x.github_short_name.clone()).collect(),
+      vec![repository.github_short_name]
     )
     .await
     .map_err(|e| {
