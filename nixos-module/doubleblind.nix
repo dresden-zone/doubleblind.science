@@ -150,7 +150,7 @@ in
           script = ''
             mkdir -p ${cfg.storageLocation}
             chown -R ${cfg.user} ${cfg.storageLocation}
-            chown -R ${cfg.group} ${cfg.storageLocation}
+            chgrp -R ${cfg.group} ${cfg.storageLocation}
           '';
 
           serviceConfig = {
