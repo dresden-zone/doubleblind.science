@@ -9,8 +9,9 @@
         <table>
           <thead>
           <tr>
-            <th>Subdomain</th>
             <th>Repo</th>
+            <th>Subdomain</th>
+            <th>Branch</th>
             <th></th>
           </tr>
           </thead>
@@ -18,17 +19,21 @@
           <tr *ngFor="let project of (projects | async )">
             <td colspan="2">
               <ng-template [ngIf]="project.deployed">
-                <b>{{project.full_name}}</b>
-                <b>{{project.domain}}</b>
-                <b>{{project.branch}}</b>
-                <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
+                <tr>
+                  <td><b>{{project.full_name}}</b></td>
+                  <td><b>{{project.domain}}</b></td>
+                  <td><b>{{project.branch}}</b></td>
+                  <td><feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button></td>
+                </tr>
               </ng-template>
               <ng-template [ngIf]="!project.deployed">
                 <form class="create-project-input" [formGroup]="form">
-                  <b>{{project.full_name}}</b>
-                  <feel-text-field label="Subdomain" formControlName="name"></feel-text-field>
-                  <feel-text-field label="Branch" formControlName="branch"></feel-text-field>
-                  <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
+                <tr>
+                  <td><b>{{project.full_name}}</b></td>
+                  <td><feel-text-field label="Subdomain" formControlName="name"></feel-text-field></td>
+                  <td><feel-text-field label="Branch" formControlName="branch"></feel-text-field></td>
+                  <td><feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button></td>
+                </tr>
                 </form>
               </ng-template>
 
