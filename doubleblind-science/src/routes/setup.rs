@@ -18,10 +18,10 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
-use crate::routes::RepoInformation;
 use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
+use crate::routes::GithubRepoInformation;
 
 #[derive(Serialize)]
 pub(super) struct WebHookInformation {
@@ -74,11 +74,23 @@ pub(super) struct InstallationInformation {
   id: i64,
 }
 
+
 #[derive(Deserialize)]
 pub(super) struct GithubWebhookSetup {
   installation: InstallationInformation,
-  repositories_added: Vec<RepoInformation>,
-  repositories_removed: Vec<RepoInformation>,
+  repositories_added: Vec<GithubRepoInformation>,
+  repositories_removed: Vec<GithubRepoInformation>,
+}
+
+#[derive(Serialize)]
+pub(super) struct FrontendRepoInformation {
+  pub id: i64,
+  #[serde(rename = "name")]
+  pub short_name: String,
+  pub full_name: String,
+  pub deployed: bool,
+  pub domain: Option<String>,
+  pub branch: Option<String>
 }
 
 #[derive(Serialize)]
@@ -157,7 +169,7 @@ pub(super) async fn github_create_installation(
   })?;
 
   // look which repositories are already known
-  let already_installed_repos: Vec<RepoInformation> = match state
+  let already_installed_repos: Vec<GithubRepoInformation> = match state
     .project_service
     .all_repos_for_installation_id(parsed_request.installation.id)
     .await
@@ -167,13 +179,10 @@ pub(super) async fn github_create_installation(
     })? {
     Some(values) => values
       .into_iter()
-      .map(|x| RepoInformation {
+      .map(|x| GithubRepoInformation {
         id: x.github_id,
         short_name: x.github_short_name,
         full_name: x.github_full_name,
-        deployed: x.deployed,
-        domain: x.domain,
-        branch: x.branch,
       })
       .collect(),
     None => {
@@ -183,7 +192,7 @@ pub(super) async fn github_create_installation(
   };
 
   // here we basically calculate (Known + New) - Removed
-  let mut set_of_repos: HashSet<RepoInformation> =
+  let mut set_of_repos: HashSet<GithubRepoInformation> =
     HashSet::from_iter(already_installed_repos.into_iter());
 
   for added_repo in parsed_request.repositories_added {
@@ -196,7 +205,7 @@ pub(super) async fn github_create_installation(
     set_of_repos.remove(&removed_repo);
   }
 
-  let repos_with_permissions: Vec<RepoInformation> = set_of_repos.into_iter().collect();
+  let repos_with_permissions: Vec<GithubRepoInformation> = set_of_repos.into_iter().collect();
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
@@ -230,7 +239,7 @@ pub async fn github_app_repositories(
   Session(session): Session,
   State(state): State<DoubleBlindState>,
   _jar: CookieJar,
-) -> Result<Json<Vec<RepoInformation>>, StatusCode> {
+) -> Result<Json<Vec<FrontendRepoInformation>>, StatusCode> {
   match state
     .project_service
     .all_repos_for_installation_id(session.installation_id)
@@ -239,7 +248,7 @@ pub async fn github_app_repositories(
     Ok(Some(value)) => Ok(Json(
       value
         .iter()
-        .map(|x| RepoInformation {
+        .map(|x| FrontendRepoInformation {
           id: x.github_id,
           short_name: x.github_short_name.clone(),
           full_name: x.github_full_name.clone(),
@@ -247,7 +256,7 @@ pub async fn github_app_repositories(
           branch: x.branch.clone(),
           domain: x.domain.clone()
         })
-        .collect::<Vec<RepoInformation>>(),
+        .collect::<Vec<FrontendRepoInformation>>(),
     )),
     Ok(None) => {
       info!(

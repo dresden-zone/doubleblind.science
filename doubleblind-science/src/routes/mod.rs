@@ -13,14 +13,11 @@ mod deploy;
 mod setup;
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash)]
-pub(super) struct RepoInformation {
+pub struct GithubRepoInformation {
   pub id: i64,
   #[serde(rename = "name")]
   pub short_name: String,
   pub full_name: String,
-  pub deployed: bool,
-  pub domain: Option<String>,
-  pub branch: Option<String>
 }
 
 pub(crate) fn route() -> Router<DoubleBlindState> {

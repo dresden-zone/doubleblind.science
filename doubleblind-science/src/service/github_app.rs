@@ -12,8 +12,7 @@ use uuid::Uuid;
 use entity::github_app::Model;
 use entity::prelude::Repository;
 use entity::{github_app, repository};
-
-use crate::routes::RepoInformation;
+use crate::routes::GithubRepoInformation;
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {
@@ -92,7 +91,7 @@ impl ProjectService {
   pub(crate) async fn rewrite_list_of_repositories(
     &self,
     app_id: Uuid,
-    names: Vec<RepoInformation>,
+    names: Vec<GithubRepoInformation>,
   ) -> anyhow::Result<()> {
     repository::Entity::delete_many()
       .filter(repository::Column::GithubApp.eq(app_id))
