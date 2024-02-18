@@ -15,9 +15,27 @@ export class RepositoryService {
 
 
   public getUserRepos() : Observable<Repository[]> {
-    return this.http.get<Repository[]>(`https://api.${API_URL}/v1/github/repos`,{
+    /*return this.http.get<Repository[]>(`https://api.${API_URL}/v1/github/repos`,{
       withCredentials: true
-    })
+    })*/
+    return of([
+      {
+        id: BigInt(1231),
+        name: "Test1",
+        full_name: "xxx/Test1",
+        deployed: true,
+        domain: "domain123",
+        branch: "master",
+      },
+      {
+        id: BigInt(11231),
+        name: "Test2",
+        full_name: "yyy/Test2",
+        deployed: false,
+        domain: undefined,
+        branch: undefined,
+      }
+    ])
   }
   public deployRepo(domain: string, branch: string, github_id: bigint): Observable<void> {
     console.log("creating project with " + domain + " and repo " + github_id);
