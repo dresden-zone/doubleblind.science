@@ -11,17 +11,19 @@ use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
 };
+use hmac::{Hmac, Mac};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
+use crate::routes::GithubRepoInformation;
 use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
-use crate::routes::GithubRepoInformation;
 
 #[derive(Serialize)]
 pub(super) struct WebHookInformation {
@@ -39,27 +41,11 @@ pub(super) struct WebhookRegistrationRequest {
   config: WebHookInformation,
 }
 
-#[derive(Serialize)]
-pub(super) struct GithubDispatchEvent {
-  event_type: String,
-  //client_payload: serde_json::Value
-}
-
-#[derive(Deserialize, Debug)]
-enum SetupAction {
-  #[serde(rename = "update")]
-  Update,
-  #[serde(rename = "setup")]
-  Setup,
-  #[serde(rename = "removed")]
-  Removed,
-}
-
 #[derive(Deserialize, Debug)]
 pub(super) struct GithubAppRegistrationCallback {
   installation_id: i64,
-  code: String,
-  setup_action: String,
+  _code: String,
+  _setup_action: String,
 }
 
 #[derive(Deserialize)]
@@ -73,7 +59,6 @@ pub(super) struct DeploySite {
 pub(super) struct InstallationInformation {
   id: i64,
 }
-
 
 #[derive(Deserialize)]
 pub(super) struct GithubWebhookSetup {
@@ -90,22 +75,7 @@ pub(super) struct FrontendRepoInformation {
   pub full_name: String,
   pub deployed: bool,
   pub domain: Option<String>,
-  pub branch: Option<String>
-}
-
-#[derive(Serialize)]
-struct WebHookConfig {
-  url: String,
-  content_type: String,
-  insecure_ssl: String,
-}
-// {"name":"web","active":true,"events":["push","pull_request"],"config":{"url":"https://example.com/webhook","content_type":"json","insecure_ssl":"0"}}
-#[derive(Serialize)]
-pub(super) struct CreateWebhookRequest {
-  name: String,
-  active: bool,
-  events: Vec<String>,
-  config: WebHookConfig,
+  pub branch: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -153,12 +123,38 @@ pub(super) async fn github_forward_user(
 }
 
 pub(super) async fn github_create_installation(
-  State(state): State<DoubleBlindState>,
-  _headers: HeaderMap,
+  State(mut state): State<DoubleBlindState>,
+  headers: HeaderMap,
   raw_body: String,
 ) -> Result<StatusCode, StatusCode> {
   info!("setup new github project");
-  // TODO: do HMAC Challenge this endpoint should only be called from github
+
+  type HmacSha256 = Hmac<Sha256>;
+
+  let hash = match headers.get("X-Hub-Signature-256") {
+    Some(value) => value,
+    None => {
+      error!("github didn't send HMAC challange hash!");
+      return Err(StatusCode::BAD_REQUEST);
+    }
+  };
+
+  match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
+    Ok(mut mac) => {
+      mac.update(raw_body.as_ref());
+      let result: &[u8] = &mac.finalize().into_bytes();
+
+      if result != hash.as_bytes().iter().as_slice() {
+        error!("non github entity tried to call the webhook endpoint!");
+        return Err(StatusCode::FORBIDDEN);
+      }
+    }
+    Err(e) => {
+      error!("cannot generate hmac with error {}", e);
+      return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+  }
+
   // parsing json body from github
   let parsed_request: GithubWebhookSetup = serde_json::from_str(&raw_body).map_err(|e| {
     error!(
@@ -183,6 +179,10 @@ pub(super) async fn github_create_installation(
         id: x.github_id,
         short_name: x.github_short_name,
         full_name: x.github_full_name,
+        deployed: x.deployed,
+        domain: x.domain,
+        branch: x.branch,
+        last_update: x.last_update,
       })
       .collect(),
     None => {
@@ -206,6 +206,11 @@ pub(super) async fn github_create_installation(
   }
 
   let repos_with_permissions: Vec<GithubRepoInformation> = set_of_repos.into_iter().collect();
+
+  state.repos_per_installation.insert(
+    parsed_request.installation.id,
+    repos_with_permissions.clone(),
+  );
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
@@ -237,9 +242,50 @@ pub(super) async fn github_create_installation(
 
 pub async fn github_app_repositories(
   Session(session): Session,
-  State(state): State<DoubleBlindState>,
+  State(mut state): State<DoubleBlindState>,
   _jar: CookieJar,
 ) -> Result<Json<Vec<FrontendRepoInformation>>, StatusCode> {
+  if let Some(values) = state
+    .repos_per_installation
+    .remove(&session.installation_id)
+  {
+    return Ok(Json(
+      values
+        .iter()
+        .map(|x| FrontendRepoInformation {
+          id: x.id,
+          short_name: x.short_name.clone(),
+          full_name: x.full_name.clone(),
+          deployed: x.deployed,
+          branch: x.branch.clone(),
+          domain: x.domain.clone(),
+        })
+        .collect::<Vec<FrontendRepoInformation>>(),
+    ));
+  }
+
+  match state
+    .repos_per_installation
+    .remove(&session.installation_id)
+  {
+    Some(values) => {
+      return Ok(Json(
+        values
+          .iter()
+          .map(|x| FrontendRepoInformation {
+            id: x.id,
+            short_name: x.short_name.clone(),
+            full_name: x.full_name.clone(),
+            deployed: x.deployed,
+            branch: x.branch.clone(),
+            domain: x.domain.clone(),
+          })
+          .collect::<Vec<FrontendRepoInformation>>(),
+      ));
+    }
+    None => {}
+  }
+
   match state
     .project_service
     .all_repos_for_installation_id(session.installation_id)
@@ -252,9 +298,9 @@ pub async fn github_app_repositories(
           id: x.github_id,
           short_name: x.github_short_name.clone(),
           full_name: x.github_full_name.clone(),
-          deployed: x.deployed.clone(),
+          deployed: x.deployed,
           branch: x.branch.clone(),
-          domain: x.domain.clone()
+          domain: x.domain.clone(),
         })
         .collect::<Vec<FrontendRepoInformation>>(),
     )),

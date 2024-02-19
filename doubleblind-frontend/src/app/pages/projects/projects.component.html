@@ -32,10 +32,10 @@
             </form>
             <ng-template #deployedView>
               <td><b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b></td>
-              <td><b>{{project.domain}}</b></td>
-              <td><b>{{project.branch}}</b></td>
+              <td><b *ngIf="project.domain != undefined">{{project.domain}}</b></td>
+              <td><b *ngIf="project.branch != undefined">{{project.branch}}</b></td>
               <td>
-                <feel-button (click)="visit_website(project.name)"><app-icon-eye></app-icon-eye></feel-button>
+                <feel-button *ngIf="project.domain != undefined" (click)="visit_website(project.domain)"><app-icon-eye></app-icon-eye></feel-button>
               </td>
             </ng-template>
           </tr>

@@ -10,6 +10,7 @@ use uuid::Uuid;
 use migration::{Migrator, MigratorTrait};
 
 use crate::auth::SessionData;
+use crate::routes::GithubRepoInformation;
 use crate::service::deploy::DeploymentService;
 use crate::service::github_app::ProjectService;
 use crate::service::token::TokenService;
@@ -21,6 +22,7 @@ pub(crate) struct DoubleBlindState {
   pub token_service: TokenService,
   pub deployment_service: DeploymentService,
   pub github_hmac_secret: String,
+  pub repos_per_installation: HashMap<i64, Vec<GithubRepoInformation>>,
 }
 
 impl DoubleBlindState {
@@ -72,6 +74,7 @@ impl DoubleBlindState {
       ),
       token_service: TokenService::new(github_client_id.to_string(), github_private_key_file),
       github_hmac_secret,
+      repos_per_installation: HashMap::new(),
     }
   }
 }

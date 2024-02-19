@@ -1,20 +1,12 @@
-use crate::service::deploy::DeploymentInformation;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use serde::{Deserialize, Serialize};
-
 use tracing::{error, info};
 
+use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
-
-#[derive(Serialize, Deserialize)]
-pub(super) struct OwnerInformationGithub {
-  id: i64,
-  name: String,
-  email: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct RepositoryInformationGithub {
@@ -96,7 +88,7 @@ pub(super) async fn github_deploy_webhook(
     .token_service
     .fetch_access_tokens_repo(
       github_app.installation_id,
-      vec![repository.github_short_name]
+      vec![repository.github_short_name],
     )
     .await
     .map_err(|e| {

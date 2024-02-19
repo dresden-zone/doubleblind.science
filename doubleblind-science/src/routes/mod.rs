@@ -1,6 +1,7 @@
 use axum::routing::{get, post};
 use axum::Router;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::routes::deploy::github_deploy_webhook;
 use crate::routes::setup::{
@@ -12,12 +13,16 @@ use crate::state::DoubleBlindState;
 mod deploy;
 mod setup;
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash, Clone)]
 pub struct GithubRepoInformation {
   pub id: i64,
   #[serde(rename = "name")]
   pub short_name: String,
   pub full_name: String,
+  pub deployed: bool,
+  pub domain: Option<String>,
+  pub branch: Option<String>,
+  pub last_update: OffsetDateTime,
 }
 
 pub(crate) fn route() -> Router<DoubleBlindState> {

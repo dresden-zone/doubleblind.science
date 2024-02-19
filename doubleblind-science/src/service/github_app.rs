@@ -9,10 +9,10 @@ use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use crate::routes::GithubRepoInformation;
 use entity::github_app::Model;
 use entity::prelude::Repository;
 use entity::{github_app, repository};
-use crate::routes::GithubRepoInformation;
 
 #[derive(Clone)]
 pub(crate) struct ProjectService {

@@ -37,7 +37,7 @@ export class ProjectsComponent {
     branch: new FormControl(null, [Validators.required]),
   })
 
-  protected visit_website(subdomain: string) {
+  protected visit_website(subdomain: string | undefined) {
       location.href=`https://${subdomain}.science.tanneberger.me`;
   }
 
