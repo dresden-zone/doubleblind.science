@@ -44,8 +44,8 @@ pub(super) struct WebhookRegistrationRequest {
 #[derive(Deserialize, Debug)]
 pub(super) struct GithubAppRegistrationCallback {
   installation_id: i64,
-  _code: String,
-  _setup_action: String,
+  //code: String,
+  //setup_action: String,
 }
 
 #[derive(Deserialize)]
