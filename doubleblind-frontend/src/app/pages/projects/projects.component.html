@@ -12,32 +12,28 @@
             <th>Repo</th>
             <th>Subdomain</th>
             <th>Branch</th>
-            <th></th>
+            <th>Action</th>
           </tr>
           </thead>
           <tbody>
           <tr *ngFor="let project of (projects | async )">
-            <form *ngIf="!project.deployed; else deployedView" class="create-project-input" [formGroup]="form">
-              <td><b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b></td>
-              <td>
-                  <feel-text-field formControlName="name"></feel-text-field>
-              </td>
-              <td>
-                  <feel-text-field formControlName="branch"></feel-text-field>
-              </td>
-              <td>
-                  <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
-              </td>
-            <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
-            </form>
-            <ng-template #deployedView>
-              <td><b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b></td>
-              <td><b *ngIf="project.domain != undefined">{{project.domain}}</b></td>
-              <td><b *ngIf="project.branch != undefined">{{project.branch}}</b></td>
-              <td>
-                <feel-button *ngIf="project.domain != undefined" (click)="visit_website(project.domain)"><app-icon-eye></app-icon-eye></feel-button>
-              </td>
-            </ng-template>
+            <td colspan="4">
+              <form *ngIf="!project.deployed; else deployedView" class="create-project-input" [formGroup]="form">
+                <b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b>
+                <feel-text-field formControlName="name"></feel-text-field>
+                <feel-text-field formControlName="branch"></feel-text-field>
+                <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
+                <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
+              </form>
+              <ng-template #deployedView>
+                <div class="create-project-input">
+                  <b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b>
+                  <b *ngIf="project.domain != undefined">{{project.domain}}</b>
+                  <b *ngIf="project.branch != undefined">{{project.branch}}</b>
+                  <feel-button *ngIf="project.domain != undefined" (click)="visit_website(project.domain)"><app-icon-eye></app-icon-eye></feel-button>
+                </div>
+              </ng-template>
+            </td>
           </tr>
           </tbody>
         </table>
