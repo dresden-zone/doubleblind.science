@@ -143,7 +143,7 @@ pub(super) async fn github_create_installation(
     Ok(mut mac) => {
       mac.update(raw_body.as_ref());
       let result: &[u8] = &mac.finalize().into_bytes();
-      info!("{:?}, {:?}", String::from_utf8_lossy(&result), &hash);
+      info!("{:x?}, {:?}", &result, &hash);
       if result != hash.as_bytes().iter().as_slice() {
         error!("non github entity tried to call the webhook endpoint!");
         return Err(StatusCode::FORBIDDEN);
