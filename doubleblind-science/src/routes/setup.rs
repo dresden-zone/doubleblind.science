@@ -11,7 +11,9 @@ use axum_extra::extract::{
   cookie::{Cookie, SameSite},
   CookieJar,
 };
+use bytes::Bytes;
 use hmac::{Hmac, Mac};
+use hyper::Body;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -125,7 +127,7 @@ pub(super) async fn github_forward_user(
 pub(super) async fn github_create_installation(
   State(mut state): State<DoubleBlindState>,
   headers: HeaderMap,
-  raw_body: String,
+  raw_body: Bytes,
 ) -> Result<StatusCode, StatusCode> {
   info!("setup new github project");
 
@@ -143,6 +145,7 @@ pub(super) async fn github_create_installation(
 
   match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
     Ok(mut mac) => {
+      info!("body {}", String::from_utf8_lossy(&raw_body));
       mac.update(raw_body.as_ref());
 
       info!("validating slice: {}", &hash_value.1);
@@ -164,10 +167,10 @@ pub(super) async fn github_create_installation(
   }
 
   // parsing json body from github
-  let parsed_request: GithubWebhookSetup = serde_json::from_str(&raw_body).map_err(|e| {
+  let parsed_request: GithubWebhookSetup = serde_json::from_str(&*String::from_utf8_lossy(&raw_body)).map_err(|e| {
     error!(
       "cannot parse request body from github {} {:?}",
-      &raw_body, e
+      &*String::from_utf8_lossy(&raw_body), e
     );
     StatusCode::BAD_REQUEST
   })?;

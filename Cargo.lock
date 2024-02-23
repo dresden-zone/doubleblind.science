@@ -566,6 +566,7 @@ dependencies = [
  "async-compression",
  "axum",
  "axum-extra",
+ "bytes",
  "clap",
  "entity",
  "futures-util",
