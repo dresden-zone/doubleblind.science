@@ -12,20 +12,21 @@ use axum_extra::extract::{
   CookieJar,
 };
 use bytes::Bytes;
+use futures_util::StreamExt;
 use hmac::{Hmac, Mac};
 use hyper::Body;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use time::Duration;
+use time::{Duration, OffsetDateTime};
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
-use crate::routes::GithubRepoInformation;
 use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
+use crate::routes::GithubRepoEdit;
 
 #[derive(Serialize)]
 pub(super) struct WebHookInformation {
@@ -62,11 +63,12 @@ pub(super) struct InstallationInformation {
   id: i64,
 }
 
+
 #[derive(Deserialize)]
 pub(super) struct GithubWebhookSetup {
   installation: InstallationInformation,
-  repositories_added: Vec<GithubRepoInformation>,
-  repositories_removed: Vec<GithubRepoInformation>,
+  repositories_added: Vec<GithubRepoEdit>,
+  repositories_removed: Vec<GithubRepoEdit>,
 }
 
 #[derive(Serialize)]
@@ -171,7 +173,7 @@ pub(super) async fn github_create_installation(
   })?;
 
   // look which repositories are already known
-  let already_installed_repos: Vec<GithubRepoInformation> = match state
+  let already_installed_repos: Vec<GithubRepoEdit> = match state
     .project_service
     .all_repos_for_installation_id(parsed_request.installation.id)
     .await
@@ -181,14 +183,10 @@ pub(super) async fn github_create_installation(
     })? {
     Some(values) => values
       .into_iter()
-      .map(|x| GithubRepoInformation {
+      .map(|x| GithubRepoEdit {
         id: x.github_id,
-        short_name: x.github_short_name,
+        name: x.github_short_name,
         full_name: x.github_full_name,
-        deployed: x.deployed,
-        domain: x.domain,
-        branch: x.branch,
-        last_update: x.last_update,
       })
       .collect(),
     None => {
@@ -198,7 +196,7 @@ pub(super) async fn github_create_installation(
   };
 
   // here we basically calculate (Known + New) - Removed
-  let mut set_of_repos: HashSet<GithubRepoInformation> =
+  let mut set_of_repos: HashSet<GithubRepoEdit> =
     HashSet::from_iter(already_installed_repos.into_iter());
 
   for added_repo in parsed_request.repositories_added {
@@ -211,12 +209,9 @@ pub(super) async fn github_create_installation(
     set_of_repos.remove(&removed_repo);
   }
 
-  let repos_with_permissions: Vec<GithubRepoInformation> = set_of_repos.into_iter().collect();
+  let repos_with_permissions: Vec<GithubRepoEdit> = set_of_repos.into_iter().collect();
 
-  state.repos_per_installation.insert(
-    parsed_request.installation.id,
-    repos_with_permissions.clone(),
-  );
+  state.repos_per_installation.push(parsed_request.installation.id);
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
@@ -243,6 +238,8 @@ pub(super) async fn github_create_installation(
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+  state.repos_per_installation.retain(|&item| item != parsed_request.installation.id);
+
   Ok(StatusCode::OK)
 }
 
@@ -251,45 +248,9 @@ pub async fn github_app_repositories(
   State(mut state): State<DoubleBlindState>,
   _jar: CookieJar,
 ) -> Result<Json<Vec<FrontendRepoInformation>>, StatusCode> {
-  if let Some(values) = state
-    .repos_per_installation
-    .remove(&session.installation_id)
-  {
-    return Ok(Json(
-      values
-        .iter()
-        .map(|x| FrontendRepoInformation {
-          id: x.id,
-          short_name: x.short_name.clone(),
-          full_name: x.full_name.clone(),
-          deployed: x.deployed,
-          branch: x.branch.clone(),
-          domain: x.domain.clone(),
-        })
-        .collect::<Vec<FrontendRepoInformation>>(),
-    ));
-  }
 
-  match state
-    .repos_per_installation
-    .remove(&session.installation_id)
-  {
-    Some(values) => {
-      return Ok(Json(
-        values
-          .iter()
-          .map(|x| FrontendRepoInformation {
-            id: x.id,
-            short_name: x.short_name.clone(),
-            full_name: x.full_name.clone(),
-            deployed: x.deployed,
-            branch: x.branch.clone(),
-            domain: x.domain.clone(),
-          })
-          .collect::<Vec<FrontendRepoInformation>>(),
-      ));
-    }
-    None => {}
+  while (state.repos_per_installation.contains(&session.installation_id)) {
+    tokio::time::sleep(core::time::Duration::from_millis(100)).await;
   }
 
   match state

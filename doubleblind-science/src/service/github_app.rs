@@ -9,7 +9,7 @@ use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::routes::GithubRepoInformation;
+use crate::routes::{GithubRepoEdit, GithubRepoInformation};
 use entity::github_app::Model;
 use entity::prelude::Repository;
 use entity::{github_app, repository};
@@ -91,7 +91,7 @@ impl ProjectService {
   pub(crate) async fn rewrite_list_of_repositories(
     &self,
     app_id: Uuid,
-    names: Vec<GithubRepoInformation>,
+    names: Vec<GithubRepoEdit>,
   ) -> anyhow::Result<()> {
     repository::Entity::delete_many()
       .filter(repository::Column::GithubApp.eq(app_id))
@@ -104,7 +104,7 @@ impl ProjectService {
       domain: NotSet,
       branch: NotSet,
       github_id: Set(info.id),
-      github_short_name: Set(info.short_name),
+      github_short_name: Set(info.name),
       github_full_name: Set(info.full_name),
       trusted: Set(false),
       deployed: Set(false),

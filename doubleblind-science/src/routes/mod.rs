@@ -13,7 +13,7 @@ use crate::state::DoubleBlindState;
 mod deploy;
 mod setup;
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Hash, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GithubRepoInformation {
   pub id: i64,
   #[serde(rename = "name")]
@@ -23,6 +23,13 @@ pub struct GithubRepoInformation {
   pub domain: Option<String>,
   pub branch: Option<String>,
   pub last_update: OffsetDateTime,
+}
+
+#[derive(Deserialize, Eq, PartialEq, Hash)]
+pub struct GithubRepoEdit {
+  pub id: i64,
+  pub name: String,
+  pub full_name: String
 }
 
 pub(crate) fn route() -> Router<DoubleBlindState> {
