@@ -1,20 +1,19 @@
 <header>
-  <feel-button label="Github" (click)="call()">
-    <app-icon-github/>
-  </feel-button>
+
 </header>
 <main>
-  <div class="hero">
-    <div class="hero-bg"></div>
-    <h1 class="title">Doubleblind.Science</h1>
-    <p>Promoting Open and Reproducible Science. </p>
-  </div>
-  <div>
-    <h2> Host your Artifacts on Doubleblind.Science</h2>
-    <ul>
-      <li> Fork Me </li>
-      <li> Deploy Me </li>
-    </ul>
+  <div class="landing-page">
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <h1 class="title">Doubleblind.Science</h1>
+      <p>Promoting Open and Reproducible Science. </p>
+    </div>
+    <div class="landing-page-setup">
+      <h3> Host your Artifacts on Doubleblind.Science:</h3>
+      <feel-button label="Setup" (click)="call()">
+        <app-icon-add/>
+      </feel-button>
+    </div>
   </div>
 </main>
 <footer>
@@ -42,6 +41,6 @@
   </div>
   <div class="links">
     <a href="https://github.com/dresden-zone/doubleblind.science">Github</a>
-    <a href="">Contact</a>
+    <a href="https://lasr.org">Contact</a>
   </div>
 </footer>

@@ -6,11 +6,12 @@ import {IconGithubComponent} from "../../core/icons/icon-github/icon-github.comp
 import {IconTudComponent} from "../../core/icons/icon-tud/icon-tud.component";
 import {IconDresdenZoneComponent} from "../../core/icons/icon-dd-zone/icon-dresden-zone.component";
 import {IconLasrComponent} from "../../core/icons/icon-lasr/icon-lasr.component";
+import {IconAddComponent} from "../../core/icons/icon-add/icon-add.component";
 
 @Component({
   selector: 'app-landingpage',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, CardComponent, IconGithubComponent, IconTudComponent, IconDresdenZoneComponent, IconLasrComponent],
+  imports: [CommonModule, ButtonComponent, CardComponent, IconGithubComponent, IconTudComponent, IconDresdenZoneComponent, IconLasrComponent, IconAddComponent],
   templateUrl: './landingpage.component.html',
   styleUrl: './landingpage.component.scss'
 })
