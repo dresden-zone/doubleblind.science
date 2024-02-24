@@ -147,7 +147,7 @@ pub(super) async fn github_create_installation(
       mac.update(&raw_body);
       info!("body {}", String::from_utf8_lossy(&raw_body));
 
-      match mac.verify_slice(&hex_string) {
+      match mac.verify_slice(&hex_string[..]) {
         Ok(_) => {},
         Err(e) => {
           error!("non github entity tried to call the webhook endpoint! {e}");

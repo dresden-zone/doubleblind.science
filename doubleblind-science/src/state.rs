@@ -40,8 +40,10 @@ impl DoubleBlindState {
     // reading secrets from files
     let database_password = std::fs::read_to_string(password_file)
       .unwrap_or_else(|_| panic!("cannot read password file: {:?}", &password_file));
-    let github_hmac_secret = std::fs::read_to_string(github_hmac_secret_file)
+    let mut github_hmac_secret = std::fs::read_to_string(github_hmac_secret_file)
       .expect("cannot read github hmac secret file");
+
+    github_hmac_secret.pop(); // remove trailing line break at the end
 
     let mut db_options = ConnectOptions::new(format!(
       "postgresql://{}:{}@{}/{}",
