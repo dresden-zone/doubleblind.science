@@ -140,25 +140,20 @@ pub(super) async fn github_create_installation(
       return Err(StatusCode::BAD_REQUEST);
     }
   };
-
-  let hash_value = hash.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.split_at(7);
+  let hex_string = hex::decode(hash.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.split_at(7).1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
   match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
     Ok(mut mac) => {
+      mac.update(&raw_body);
       info!("body {}", String::from_utf8_lossy(&raw_body));
-      mac.update(raw_body.as_ref());
 
-      info!("validating slice: {}", &hash_value.1);
-      match mac.verify_slice((hash_value.1).as_ref()) {
-        Ok(_) => {
-
-        },
+      match mac.verify_slice(&hex_string) {
+        Ok(_) => {},
         Err(e) => {
           error!("non github entity tried to call the webhook endpoint! {e}");
           return Err(StatusCode::FORBIDDEN);
         }
       }
-
     }
     Err(e) => {
       error!("cannot generate hmac with error {}", e);

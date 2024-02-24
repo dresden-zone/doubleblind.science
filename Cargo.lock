@@ -570,6 +570,7 @@ dependencies = [
  "clap",
  "entity",
  "futures-util",
+ "hex",
  "hmac",
  "hyper",
  "josekit",
