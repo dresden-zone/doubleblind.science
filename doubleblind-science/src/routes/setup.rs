@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use axum::http::HeaderMap;
@@ -12,21 +11,19 @@ use axum_extra::extract::{
   CookieJar,
 };
 use bytes::Bytes;
-use futures_util::StreamExt;
 use hmac::{Hmac, Mac};
-use hyper::Body;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use time::{Duration, OffsetDateTime};
+use time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::auth::{Session, SessionData, SESSION_COOKIE};
+use crate::routes::GithubRepoEdit;
 use crate::service::deploy::DeploymentInformation;
 use crate::service::token::ResponseAccessTokens;
 use crate::state::DoubleBlindState;
-use crate::routes::GithubRepoEdit;
 
 #[derive(Serialize)]
 pub(super) struct WebHookInformation {
@@ -62,7 +59,6 @@ pub(super) struct DeploySite {
 pub(super) struct InstallationInformation {
   id: i64,
 }
-
 
 #[derive(Deserialize)]
 pub(super) struct GithubWebhookSetup {
@@ -142,7 +138,14 @@ pub(super) async fn github_create_installation(
       return Err(StatusCode::BAD_REQUEST);
     }
   };
-  let hex_string = hex::decode(hash.to_str().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.split_at(7).1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+  let hex_string = hex::decode(
+    hash
+      .to_str()
+      .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+      .split_at(7)
+      .1,
+  )
+  .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
   match HmacSha256::new_from_slice(state.github_hmac_secret.as_ref()) {
     Ok(mut mac) => {
@@ -150,7 +153,7 @@ pub(super) async fn github_create_installation(
       info!("body {}", String::from_utf8_lossy(&raw_body));
 
       match mac.verify_slice(&hex_string[..]) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
           error!("non github entity tried to call the webhook endpoint! {e}");
           return Err(StatusCode::FORBIDDEN);
@@ -164,54 +167,19 @@ pub(super) async fn github_create_installation(
   }
 
   // parsing json body from github
-  let parsed_request: GithubWebhookSetup = serde_json::from_str(&*String::from_utf8_lossy(&raw_body)).map_err(|e| {
-    error!(
-      "cannot parse request body from github {} {:?}",
-      &*String::from_utf8_lossy(&raw_body), e
-    );
-    StatusCode::BAD_REQUEST
-  })?;
+  let parsed_request: GithubWebhookSetup =
+    serde_json::from_str(&String::from_utf8_lossy(&raw_body)).map_err(|e| {
+      error!(
+        "cannot parse request body from github {} {:?}",
+        &*String::from_utf8_lossy(&raw_body),
+        e
+      );
+      StatusCode::BAD_REQUEST
+    })?;
 
-  // look which repositories are already known
-  let already_installed_repos: Vec<GithubRepoEdit> = match state
-    .project_service
-    .all_repos_for_installation_id(parsed_request.installation.id)
-    .await
-    .map_err(|e| {
-      error!("error all repos with this installation id {e}");
-      StatusCode::INTERNAL_SERVER_ERROR
-    })? {
-    Some(values) => values
-      .into_iter()
-      .map(|x| GithubRepoEdit {
-        id: x.github_id,
-        name: x.github_short_name,
-        full_name: x.github_full_name,
-      })
-      .collect(),
-    None => {
-      info!("no values previous installed repos");
-      Vec::new()
-    }
-  };
-
-  // here we basically calculate (Known + New) - Removed
-  let mut set_of_repos: HashSet<GithubRepoEdit> =
-    HashSet::from_iter(already_installed_repos.into_iter());
-
-  for added_repo in parsed_request.repositories_added {
-    info!("(+) Repo {} Added!", &added_repo.full_name);
-    set_of_repos.insert(added_repo);
-  }
-
-  for removed_repo in parsed_request.repositories_removed {
-    info!("(-) Repo {} Removed!", &removed_repo.full_name);
-    set_of_repos.remove(&removed_repo);
-  }
-
-  let repos_with_permissions: Vec<GithubRepoEdit> = set_of_repos.into_iter().collect();
-
-  state.repos_per_installation.push(parsed_request.installation.id);
+  state
+    .repos_per_installation
+    .push(parsed_request.installation.id);
 
   // create if github_app doesn't exist yet
   let github_app_db = match state
@@ -230,7 +198,11 @@ pub(super) async fn github_create_installation(
   // rewrite the list of repositories connected to github app
   state
     .project_service
-    .rewrite_list_of_repositories(github_app_db.id, repos_with_permissions)
+    .rewrite_list_of_repositories(
+      github_app_db.id,
+      parsed_request.repositories_added,
+      parsed_request.repositories_removed,
+    )
     .await
     .map_err(|e| {
       error!("error while trying to rewrite repo list {e}");
@@ -238,18 +210,22 @@ pub(super) async fn github_create_installation(
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-  state.repos_per_installation.retain(|&item| item != parsed_request.installation.id);
+  state
+    .repos_per_installation
+    .retain(|&item| item != parsed_request.installation.id);
 
   Ok(StatusCode::OK)
 }
 
 pub async fn github_app_repositories(
   Session(session): Session,
-  State(mut state): State<DoubleBlindState>,
+  State(state): State<DoubleBlindState>,
   _jar: CookieJar,
 ) -> Result<Json<Vec<FrontendRepoInformation>>, StatusCode> {
-
-  while (state.repos_per_installation.contains(&session.installation_id)) {
+  while state
+    .repos_per_installation
+    .contains(&session.installation_id)
+  {
     tokio::time::sleep(core::time::Duration::from_millis(100)).await;
   }
 

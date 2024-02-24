@@ -10,7 +10,6 @@ use uuid::Uuid;
 use migration::{Migrator, MigratorTrait};
 
 use crate::auth::SessionData;
-use crate::routes::GithubRepoInformation;
 use crate::service::deploy::DeploymentService;
 use crate::service::github_app::ProjectService;
 use crate::service::token::TokenService;

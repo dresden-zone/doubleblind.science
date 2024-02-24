@@ -29,7 +29,7 @@ pub struct GithubRepoInformation {
 pub struct GithubRepoEdit {
   pub id: i64,
   pub name: String,
-  pub full_name: String
+  pub full_name: String,
 }
 
 pub(crate) fn route() -> Router<DoubleBlindState> {

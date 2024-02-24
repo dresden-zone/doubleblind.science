@@ -9,7 +9,7 @@ use sea_query::Expr;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::routes::{GithubRepoEdit, GithubRepoInformation};
+use crate::routes::GithubRepoEdit;
 use entity::github_app::Model;
 use entity::prelude::Repository;
 use entity::{github_app, repository};
@@ -91,14 +91,17 @@ impl ProjectService {
   pub(crate) async fn rewrite_list_of_repositories(
     &self,
     app_id: Uuid,
-    names: Vec<GithubRepoEdit>,
+    add: Vec<GithubRepoEdit>,
+    remove: Vec<GithubRepoEdit>,
   ) -> anyhow::Result<()> {
-    repository::Entity::delete_many()
-      .filter(repository::Column::GithubApp.eq(app_id))
-      .exec(&*self.db)
-      .await?;
+    for x in remove {
+      repository::Entity::delete_many()
+        .filter(repository::Column::GithubId.eq(x.id))
+        .exec(&*self.db)
+        .await?;
+    }
 
-    Repository::insert_many(names.into_iter().map(|info| repository::ActiveModel {
+    Repository::insert_many(add.into_iter().map(|info| repository::ActiveModel {
       id: Set(Uuid::new_v4()),
       github_app: Set(app_id),
       domain: NotSet,
