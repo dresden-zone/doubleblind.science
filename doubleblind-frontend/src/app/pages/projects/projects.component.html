@@ -23,13 +23,12 @@
                 <feel-text-field formControlName="name"></feel-text-field>
                 <feel-text-field formControlName="branch"></feel-text-field>
                 <feel-button (click)="validate_input_and_submit(project.id)">Deploy!</feel-button>
-                <!--<td><feel-button flavor="danger"> <app-icon-trash></app-icon-trash></feel-button></td>-->
               </form>
               <ng-template #deployedView>
                 <div class="create-project-input">
-                  <b><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b>
-                  <b *ngIf="project.domain != undefined">{{project.domain}}</b>
-                  <b *ngIf="project.branch != undefined">{{project.branch}}</b>
+                  <b class="element"><a href="https://github.com/{{project.full_name}}">{{project.full_name}}</a></b>
+                  <b class="element" *ngIf="project.domain != undefined">{{project.domain}}</b>
+                  <b class="element" *ngIf="project.branch != undefined">{{project.branch}}</b>
                   <feel-button *ngIf="project.domain != undefined" (click)="visit_website(project.domain)"><app-icon-eye></app-icon-eye></feel-button>
                 </div>
               </ng-template>

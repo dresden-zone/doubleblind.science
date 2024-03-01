@@ -7,35 +7,35 @@ header {
 }
 
 main {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  flex-grow: 1;
-  padding-left: 5rem;
+  //flex-grow: 1;
+  //padding-left: 5rem;
   background-image: url("../../../assets/background.svg");
   background-repeat: no-repeat;
   background-position: right;
+  display: flex;
+  flex-direction: column;
+  //gap: 10rem;
+  justify-content: space-between;
+  //max-width: 50%;
+  max-width: 1000px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 footer {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  //justify-content: center;
   align-items: center;
   gap: 1rem;
 }
 
 
 :host {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr min-content;
   height: 100vh;
-  padding: 1rem;
-  gap: 1rem;
-
-  //background: radial-gradient(circle, rgba(255, 126, 0, 1) 0%, rgba(126, 0, 255, 1) 46%, rgba(255, 74, 0, 0) 100%);
-  //background-position: 10% 10%;
 }
 
 .title {
@@ -49,6 +49,8 @@ footer {
   flex-direction: column;
   position: relative;
   padding: 3rem;
+  align-items: flex-start;
+  width: min-content;
 
   :not(.hero-bg) {
     z-index: 100;
@@ -90,16 +92,11 @@ a {
   text-decoration: none;
 }
 
-.landing-page {
-  display: flex;
-  flex-direction: column;
-  gap: 10rem;
-}
-
 .landing-page-setup {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 3rem;
+  align-items: flex-start;
 }
 

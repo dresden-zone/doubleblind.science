@@ -32,12 +32,14 @@ header {
 main {
   display: flex;
   flex-direction: column;
+  //gap: 10rem;
+  //max-width: 50%;
+  max-width: 1000px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   justify-content: flex-start;
   flex-grow: 1;
-  //padding-left: 5rem;
-  //background-image: url("../../../assets/background.svg");
-  //background-repeat: no-repeat;
-  //background-position: right;
 }
 
 footer {
@@ -86,6 +88,12 @@ table td {
   display: flex;
   flex-direction: row;
   gap: 1rem;
+}
+
+.element {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 a {

@@ -14,7 +14,8 @@ use time::OffsetDateTime;
 
 #[derive(Clone)]
 pub struct TokenService {
-  jwt: String,
+  client_id: String,
+  secret: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -32,10 +33,9 @@ pub struct ResponseAccessTokens {
 
 impl TokenService {
   pub fn new(client_id: String, private_key_file: &Path) -> TokenService {
-    let private_key = std::fs::read_to_string(private_key_file).expect("cannot read private key");
-    let jwt = TokenService::make_jwt(client_id, private_key).expect("cannot create jwt");
+    let secret = std::fs::read_to_string(private_key_file).expect("cannot read private key");
 
-    TokenService { jwt }
+    TokenService { secret, client_id }
   }
 
   pub fn make_jwt(client_id: String, private_key: String) -> Result<String, JoseError> {
@@ -65,12 +65,14 @@ impl TokenService {
       permissions: HashMap::from([("repository_hooks", "write"), ("contents", "read")]),
     };
 
-    println!("DEBUG {:?} \nJWT {}", &request_body, &self.jwt);
+    let jwt = TokenService::make_jwt(self.client_id.clone(), self.secret.clone()).expect("cannot create jwt");
+
+    println!("DEBUG {:?} \nJWT {}", &request_body, &jwt);
     let temporary = client
       .post(format!(
         "https://api.github.com/app/installations/{installation_id}/access_tokens"
       ))
-      .bearer_auth(&self.jwt)
+      .bearer_auth(&jwt)
       .header(reqwest::header::ACCEPT, "application/vnd.github+json")
       .header("X-GitHub-Api-Version", "2022-11-28")
       .header(reqwest::header::USER_AGENT, "doubleblind-science")
