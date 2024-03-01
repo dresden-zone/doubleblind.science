@@ -15,10 +15,10 @@ export class RepositoryService {
 
 
   public getUserRepos() : Observable<Repository[]> {
-    //return this.http.get<Repository[]>(`https://api.${API_URL}/v1/github/repos`,{
-    //  withCredentials: true
-    //})
-    return of([
+    return this.http.get<Repository[]>(`https://api.${API_URL}/v1/github/repos`,{
+      withCredentials: true
+    })
+    /*return of([
       {
         id: BigInt(1231),
         name: "Test1",
@@ -35,7 +35,7 @@ export class RepositoryService {
         domain: undefined,
         branch: undefined,
       }
-    ])
+    ])*/
   }
   public deployRepo(domain: string, branch: string, github_id: bigint): Observable<void> {
     console.log("creating project with " + domain + " and repo " + github_id);

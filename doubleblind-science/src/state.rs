@@ -21,7 +21,7 @@ pub(crate) struct DoubleBlindState {
   pub token_service: TokenService,
   pub deployment_service: DeploymentService,
   pub github_hmac_secret: String,
-  pub repos_per_installation: Vec<i64>,
+  pub repos_per_installation: Arc<RwLock<Vec<i64>>>,
 }
 
 impl DoubleBlindState {
@@ -75,7 +75,7 @@ impl DoubleBlindState {
       ),
       token_service: TokenService::new(github_client_id.to_string(), github_private_key_file),
       github_hmac_secret,
-      repos_per_installation: Vec::new(),
+      repos_per_installation: Arc::new(RwLock::new(Vec::new())),
     }
   }
 }

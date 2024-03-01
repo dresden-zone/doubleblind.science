@@ -179,6 +179,8 @@ pub(super) async fn github_create_installation(
 
   state
     .repos_per_installation
+    .write()
+    .await
     .push(parsed_request.installation.id);
 
   // create if github_app doesn't exist yet
@@ -212,6 +214,8 @@ pub(super) async fn github_create_installation(
 
   state
     .repos_per_installation
+    .write()
+    .await
     .retain(|&item| item != parsed_request.installation.id);
 
   Ok(StatusCode::OK)
@@ -224,6 +228,8 @@ pub async fn github_app_repositories(
 ) -> Result<Json<Vec<FrontendRepoInformation>>, StatusCode> {
   while state
     .repos_per_installation
+    .read()
+    .await
     .contains(&session.installation_id)
   {
     tokio::time::sleep(core::time::Duration::from_millis(100)).await;
