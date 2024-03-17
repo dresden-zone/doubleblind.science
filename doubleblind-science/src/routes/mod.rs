@@ -12,6 +12,7 @@ use crate::state::DoubleBlindState;
 
 mod deploy;
 mod setup;
+mod auth;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GithubRepoInformation {

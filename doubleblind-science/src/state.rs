@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
+use oauth2::basic::BasicClient;
+use oauth2::CsrfToken;
 
 use sea_orm::{ConnectOptions, Database};
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Mutex};
 use uuid::Uuid;
 
 use migration::{Migrator, MigratorTrait};
@@ -16,6 +18,8 @@ use crate::service::token::TokenService;
 
 #[derive(Clone)]
 pub(crate) struct DoubleBlindState {
+  pub oauth_github_client: BasicClient,
+  pub csrf_state: Arc<Mutex<HashMap<Uuid, CsrfToken>>>,
   pub sessions: Arc<RwLock<HashMap<Uuid, Arc<SessionData>>>>,
   pub project_service: ProjectService,
   pub token_service: TokenService,

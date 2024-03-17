@@ -15,7 +15,7 @@ pub(crate) const SESSION_COOKIE: &str = "session_id";
 
 #[derive(Debug, Clone)]
 pub(crate) struct SessionData {
-  pub(crate) installation_id: i64,
+  pub(crate) installation_id: Vec<i64>,
 }
 
 pub(crate) struct Session(pub Arc<SessionData>);

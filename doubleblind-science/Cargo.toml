@@ -31,6 +31,10 @@ josekit = "0.8"
 hyper = "0.14.28"
 bytes = "1.5"
 hex = "0.4.3"
+http = "0.2.11"
+cookie = { version = "0.17.0", features = [] }
+url = "2.5.0"
+oauth2 = { version = "4.4", features = ["reqwest"] }
 
 [dev-dependencies]
 tokio = {version = "1.36", features = ["test-util"] }

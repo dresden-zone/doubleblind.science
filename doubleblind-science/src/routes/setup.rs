@@ -99,7 +99,7 @@ pub(super) async fn github_forward_user(
   let session_id = Uuid::new_v4();
 
   let session_data = SessionData {
-    installation_id: query.installation_id,
+    installation_id: vec![query.installation_id],
   };
 
   let _result = state
